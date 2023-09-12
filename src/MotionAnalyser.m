@@ -1,4 +1,4 @@
-classdef MotionAnalyser_beta2_exported < matlab.apps.AppBase
+classdef MotionAnalyser < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
@@ -12014,7 +12014,7 @@ classdef MotionAnalyser_beta2_exported < matlab.apps.AppBase
     methods (Access = public)
 
         % Construct app
-        function app = MotionAnalyser_beta2_exported
+        function app = MotionAnalyser
 
             % Create UIFigure and components
             createComponents(app)
