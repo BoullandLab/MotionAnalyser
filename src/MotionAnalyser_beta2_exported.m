@@ -137,7 +137,7 @@ classdef MotionAnalyser_beta2_exported < matlab.apps.AppBase
         RevertMenu_10                   matlab.ui.container.Menu
         TabGroup                        matlab.ui.container.TabGroup
         CoordinatesTab                  matlab.ui.container.Tab
-        PlotSensorDropDown_2            matlab.ui.control.DropDown
+        PlotSelector                    matlab.ui.control.DropDown
         PlotDropDown_2Label_2           matlab.ui.control.Label
         iButton_3                       matlab.ui.control.Button
         UseanarbitraryZEditField        matlab.ui.control.NumericEditField
@@ -585,7 +585,7 @@ classdef MotionAnalyser_beta2_exported < matlab.apps.AppBase
                 if numel(app.X) >=1
 
                     switch value
-                        case "Single curve"
+                        case "Trajectory for a single POI"
                             idx = app.SinglePOI;
                             for k=1:size(app.e, 2)
                                 plot3 (app.UIAxes, app.X{app.e(k)}(:,idx), app.Y{app.e(k)}(:,idx), app.Z{app.e(k)}(:,idx));
@@ -635,26 +635,6 @@ classdef MotionAnalyser_beta2_exported < matlab.apps.AppBase
                             x = cat(1, x{:});
                             y = cellfun(@(x) x(:, app.SinglePOI),app.Y(app.e),'UniformOutput',false);
                             y = cat(1, y{:});
-
-                            % Loop through each element in app.e
-                            % for k = 1:size(app.e, 2)
-                            %     xk = app.X{app.e(k)};
-                            %     yk = app.Y{app.e(k)};
-                            % 
-                            %     % If x and y arrays are not empty, add NaN values to separate previous and current data
-                            %     if ~isempty(x) && ~isempty(y)
-                            %         x = [x; NaN; xk];
-                            %         y = [y; NaN; yk];
-                            %         % Otherwise, set x and y arrays to current data
-                            %     else
-                            %         x = xk;
-                            %         y = yk;
-                            %     end
-                            % end
-                            % 
-                            % % select only the x and y values from the user defined POI
-                            % x = x(:, idx);
-                            % y = y(:, idx);
 
                             % Define edges for x and y axes
                             xEdges = linspace(min(x(:)), max(x(:)), 50);
@@ -9750,9 +9730,9 @@ classdef MotionAnalyser_beta2_exported < matlab.apps.AppBase
             end
         end
 
-        % Value changed function: PlotSensorDropDown_2
-        function PlotSensorDropDown_2ValueChanged(app, event)
-            value = app.PlotSensorDropDown_2.Value;
+        % Value changed function: PlotSelector
+        function PlotSelectorValueChanged(app, event)
+            value = app.PlotSelector.Value;
 
             if numel(app.X) >=1
                 switch value
@@ -9761,6 +9741,7 @@ classdef MotionAnalyser_beta2_exported < matlab.apps.AppBase
                         SelectPOI(app)
                         % collect the number that corresponds to the selection
                         app.SinglePOI = app.SelectedOptionIndex; % user choice
+                        app.ChoosePlot = "Trajectory for a single POI";
                     case "Trajectory"
                         app.ChoosePlot = "Trajectory";
                     case "Stick diagram"
@@ -10934,13 +10915,13 @@ classdef MotionAnalyser_beta2_exported < matlab.apps.AppBase
             app.PlotDropDown_2Label_2.Position = [13 622 26 22];
             app.PlotDropDown_2Label_2.Text = 'Plot';
 
-            % Create PlotSensorDropDown_2
-            app.PlotSensorDropDown_2 = uidropdown(app.CoordinatesTab);
-            app.PlotSensorDropDown_2.Items = {'Choose', 'Trajectory for a single POI', 'Trajectory', 'Stick diagram', 'Trajectory with stick diagram', 'Heat map'};
-            app.PlotSensorDropDown_2.ValueChangedFcn = createCallbackFcn(app, @PlotSensorDropDown_2ValueChanged, true);
-            app.PlotSensorDropDown_2.Tooltip = {'Plot a power spectrum or a spectrogram'};
-            app.PlotSensorDropDown_2.Position = [72 622 246 22];
-            app.PlotSensorDropDown_2.Value = 'Choose';
+            % Create PlotSelector
+            app.PlotSelector = uidropdown(app.CoordinatesTab);
+            app.PlotSelector.Items = {'Choose', 'Trajectory for a single POI', 'Trajectory', 'Stick diagram', 'Trajectory with stick diagram', 'Heat map'};
+            app.PlotSelector.ValueChangedFcn = createCallbackFcn(app, @PlotSelectorValueChanged, true);
+            app.PlotSelector.Tooltip = {'Plot a power spectrum or a spectrogram'};
+            app.PlotSelector.Position = [72 622 246 22];
+            app.PlotSelector.Value = 'Choose';
 
             % Create AnimationTab
             app.AnimationTab = uitab(app.TabGroup);
