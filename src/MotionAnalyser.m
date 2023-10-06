@@ -19,7 +19,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         Element1with3pointsMenu         matlab.ui.container.Menu
         Element2with3pointsMenu         matlab.ui.container.Menu
         Elements1and2Menu               matlab.ui.container.Menu
-        FilteredEphytraceMenu           matlab.ui.container.Menu
+        FilteredEphystraceMenu          matlab.ui.container.Menu
         SensorsignalMenu                matlab.ui.container.Menu
         TestanglesMenu                  matlab.ui.container.Menu
         TestspeedaccMenu                matlab.ui.container.Menu
@@ -73,6 +73,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         MeanvakueMenu                   matlab.ui.container.Menu
         ZeroMenu                        matlab.ui.container.Menu
         RemovecolumnMenu                matlab.ui.container.Menu
+        MovecolumnMenu                  matlab.ui.container.Menu
         RenameMenu                      matlab.ui.container.Menu
         RevertMenu_11                   matlab.ui.container.Menu
         StitchMenu                      matlab.ui.container.Menu
@@ -154,6 +155,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         UITable1                        matlab.ui.control.Table
         UIAxes                          matlab.ui.control.UIAxes
         AnimationTab                    matlab.ui.container.Tab
+        StopButton                      matlab.ui.control.Button
         UITableElement_2                matlab.ui.control.Table
         AnimateButton                   matlab.ui.control.Button
         NormalisetracestoPanel          matlab.ui.container.Panel
@@ -161,6 +163,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         Choose_a_POI                    matlab.ui.control.DropDown
         Choose_a_AOI                    matlab.ui.control.DropDown
         AdjustPanel                     matlab.ui.container.Panel
+        CaptureButton                   matlab.ui.control.Button
         TimeintervalEditField           matlab.ui.control.NumericEditField
         TimeintervalEditFieldLabel      matlab.ui.control.Label
         SetelevationtoEditField         matlab.ui.control.NumericEditField
@@ -203,7 +206,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         POI_list                        matlab.ui.control.ListBox
         PointofInterestListBoxLabel_2   matlab.ui.control.Label
         UITableStat                     matlab.ui.control.Table
-        EphyTab                         matlab.ui.container.Tab
+        EphysTab                        matlab.ui.container.Tab
         PrevButton_5                    matlab.ui.control.Button
         NextButton_5                    matlab.ui.control.Button
         PositionFieldEMG                matlab.ui.control.NumericEditField
@@ -222,7 +225,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         CalculateButton_3               matlab.ui.control.Button
         SamplingDataRate                matlab.ui.control.NumericEditField
         SamplingrateHzLabel             matlab.ui.control.Label
-        RawEphyvaluesLabel              matlab.ui.control.Label
+        RawEphysvaluesLabel             matlab.ui.control.Label
         UITable16                       matlab.ui.control.Table
         UIAxesEMG                       matlab.ui.control.UIAxes
         SensorTab                       matlab.ui.container.Tab
@@ -325,11 +328,16 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
     properties (Access = private)
 
+        % Browse
+        file % name of the imported file as element name
+        path % importation path 
+        Table % imported data table
+        header % imported headers
+        
         % cell arrays for coordinates
         e; % defines the element number or numbers to use
         te = 0; % total number of elements
-        ElementName; % name of the differents elements
-        file; % name of the imported file as element name
+        ElementName; % name of the differents elements 
         name = {}; % name for the different POI (xPoI, yPOI)
         colname = {} % name for each POI
         colname_old = {}; % bkp
@@ -425,7 +433,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         zPosition = {}; % Abitrary value for interlimb distance
         SegDens = 1; % defines segment density for stick diagram (number of raws used)
 
-        %% Variable for gait analyses
+        % Variable for gait analyses
         XStep;
         YStep;
         ZStep;
@@ -516,7 +524,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         SpreadV_old; % bkp
         Freq; % frequency EMG
         fEMG; % filtered EMG
-        envelope; % E-phy envelope
+        envelope; % E-phys envelope
         P1 = {}; %to overlay single position
 
         % Variables for Sensors
@@ -802,7 +810,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                             Axes1_12Settings(app)
                             hold(app.UIAxes, 'off')
 
-                            if ~isempty(app.e)
+                            if isempty(app.e)
                                 % do nothing, do not change the table
                             else
                                 scroll(app.UITable1,'row', app.n29)
@@ -1783,7 +1791,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 else
                     msgbox('No coordinates available')
                 end
-            elseif selectedTab == app.EphyTab
+            elseif selectedTab == app.EphysTab
                 if ~isempty(app.Voltage)
                     app.Voltage_old = [];
                     app.tEMG_old = [];
@@ -1792,7 +1800,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     app.tEMG_old = app.tEMG;
                     app.colnameEMG_old = app.colnameEMG;
                 else
-                    msgbox('Insufficient E-phy data')
+                    msgbox('Insufficient E-phys data')
                 end
 
             elseif selectedTab == app.SensorTab
@@ -1827,7 +1835,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 UpdateTable(app);
                 UpdateAnimStep(app);
 
-            elseif selectedTab == app.EphyTab
+            elseif selectedTab == app.EphysTab
                 app.Voltage = app.Voltage_old;
                 app.fSensorValues = app.Voltage_old;
                 app.tEMG = app.tEMG_old;
@@ -1941,7 +1949,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             % plot
             cla(app.UIAxesEMG); cla(app.UIAxesEMG,'reset');
             plot (app.UIAxesEMG, app.tEMG, EMG);
-            title(app.UIAxesEMG, 'E-phy envelope');
+            title(app.UIAxesEMG, 'E-phys envelope');
             xlabel(app.UIAxesEMG, 'Time');
             ylabel(app.UIAxesEMG, 'Amplitude');
             legend (app.UIAxesSensor, app.colnameEMG);
@@ -2302,17 +2310,17 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 writecell( All,filepath);
             end
 
-            %% Export E-phy envelope
-            waitbar(0.95,f,'Exporting E-phy envelope');
+            %% Export E-phys envelope
+            waitbar(0.95,f,'Exporting E-phys envelope');
             if isempty(app.envelope)
             else
                 data = [app.tEMG, app.Voltage, app.envelope];
-                A = strcat('Raw E-phy trace-', app.colnameEMG); % concatenate 'Raw E-phy trace-' with colnameEMG
-                B = strcat('E-phy envelope-', app.colnameEMG);
+                A = strcat('Raw E-phys trace-', app.colnameEMG); % concatenate 'Raw E-phys trace-' with colnameEMG
+                B = strcat('E-phys envelope-', app.colnameEMG);
                 headers = ["Time",A,B];
                 All = [headers;data];
 
-                filename = ['E-phy envelope',app.format];
+                filename = ['E-phys envelope',app.format];
 
                 % Construct the full file path
                 filepath = fullfile(path, filename);
@@ -2530,7 +2538,10 @@ classdef MotionAnalyser < matlab.apps.AppBase
         end
 
         function CleanKinematicPlots = CleanKinematicPlots(app) %#ok<STOUT>
-            if numel(app.dX) == numel(app.X)
+                       
+            if isempty(app.dX)
+                AnalyseKinematic(app)
+            elseif numel(app.dX) == numel(app.X)
                 cla(app.UIAxes2); % clear uiAxes
                 cla(app.UIAxes2,'reset'); % reset uiaxes
                 cla(app.UIAxes3);
@@ -2543,7 +2554,6 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 AnalyseKinematic(app)
             end
         end
-
 
         function PlotKinematics = PlotKinematics(app) %#ok<STOUT>
             % plot speed vs time
@@ -2587,7 +2597,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 app.SignalFreq = 1/(mean(diff(app.T{app.e}))); % mean sampling rate
                 app.tSignal = app.T{app.e};
 
-            elseif selectedTab == app.EphyTab % Check if the selected tab is EMGTab
+            elseif selectedTab == app.EphysTab % Check if the selected tab is EMGTab
                 app.Signal = app.fEMG;
                 app.SignalFreq = app.Freq;
                 app.tSignal = app.tEMG;
@@ -2622,7 +2632,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 UpdateTable (app);
                 UpdateAnimStep(app);
 
-            elseif selectedTab == app.EphyTab % Check if the selected tab is EMGTab
+            elseif selectedTab == app.EphysTab % Check if the selected tab is EMGTab
                 app.fEMG = app.Signal;
                 app.tEMG = app.tSignal;
                 plotfEMG(app); % refresh plot
@@ -2881,7 +2891,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 UpdateTable (app);
                 UpdateAnimStep(app);
 
-            elseif selectedTab == app.EphyTab % Check if the selected tab is EMGTab
+            elseif selectedTab == app.EphysTab % Check if the selected tab is EMGTab
                 app.envelope = app.Signal;
                 plotenvelope(app); % refresh EMG plot
 
@@ -3002,7 +3012,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % collect parameter from user input
                 window = abs(str2double(answer(1))); % window
 
-                % Root-mean-square E-phy envelope
+                % Root-mean-square E-phys envelope
                 app.Signal = sqrt(movmean((app.Signal.^2),window));
 
             end
@@ -3113,7 +3123,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                         app.corrTx = app.T{idx1}(3:end);
                     end
 
-                case 'Raw E-phy trace'
+                case 'Raw E-phys trace'
                     if isempty (app.Voltage)
                         msgbox('Import an EMG first')
                         return
@@ -3122,9 +3132,9 @@ classdef MotionAnalyser < matlab.apps.AppBase
                         app.corrTx = app.tEMG;
                     end
 
-                case 'E-phy envelope'
+                case 'E-phys envelope'
                     if isempty (app.envelope)
-                        msgbox('create an E-phy envelope first')
+                        msgbox('create an E-phys envelope first')
                         return
                     else
                         app.corrx = app.envelope(:, indexX); % no element needs to be selected
@@ -3222,7 +3232,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                         app.corrTy = app.T{idx2}(3:end);
                     end
 
-                case 'Raw E-phy trace'
+                case 'Raw E-phys trace'
                     if isempty (app.Voltage)
                         msgbox('Import an EMG first')
                         return
@@ -3231,9 +3241,9 @@ classdef MotionAnalyser < matlab.apps.AppBase
                         app.corrTy = app.tEMG;
                     end
 
-                case 'E-phy envelope'
+                case 'E-phys envelope'
                     if isempty (app.envelope)
-                        msgbox('create an E-phy envelope first')
+                        msgbox('create an E-phys envelope first')
                         return
                     else
                         app.corry = app.envelope(:, indexY); % no element needs to be selected
@@ -3430,7 +3440,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
             % Update the sampling rate display
             selectedTab = app.TabGroup.SelectedTab;
-            if selectedTab == app.EphyTab
+            if selectedTab == app.EphysTab
                 app.SamplingDataRate.Value = factor;
                 app.Freq = factor; % update value of EMG frequency
             elseif selectedTab == app.SensorTab
@@ -3468,7 +3478,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             %Select the UIAxes depending on the current tab
             selectedTab = app.TabGroup.SelectedTab;
 
-            if selectedTab == app.EphyTab
+            if selectedTab == app.EphysTab
                 Ax = app.UIAxesEMG;
                 % Get the current value of the slider
                 value = app.AmplitudescalefactorSlider.Value;
@@ -3496,7 +3506,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             %Select the UIAxes depending on the current tab
             selectedTab = app.TabGroup.SelectedTab;
 
-            if selectedTab == app.EphyTab
+            if selectedTab == app.EphysTab
                 Ax = app.UIAxesEMG;
                 % Get the current value of the slider
                 value = app.TimescalefactorSlider.Value;
@@ -3567,11 +3577,38 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
             NumberElement = length(app.e);
             if NumberElement  > 1
-                msgbox(['Your selection includes multiple elements. This function' ...
-                    'is designed to work with a single element at a time. Please adjust' ...
-                    'your selection accordingly.', 'Multiple Elements Selected', 'warn'])
+                msgbox(['Your selection includes multiple elements. This function ' ...
+                    'is designed to work with a single element at a time. Please adjust ' ...
+                    'your selection accordingly.'], 'Multiple Elements Selected', 'warn')
 
             end
+        end
+        
+        function Browse = Browse(app) %#ok<STOUT>
+            app.Table = [];
+            app.file = [];
+            app.header = [];
+
+            if isempty (app.path)
+                [app.file, app.path] = uigetfile('*.csv;*.txt;*.xls;*.xlsx','Select a File');
+            else
+                [app.file, filepath] = uigetfile(fullfile(app.path, '*.csv;*.txt;*.xls;*.xlsx'), 'Select a File');
+                app.path = filepath;
+            end 
+            if isequal(app.file,0)
+                % User clicked the "Cancel" button
+                return
+            else
+                % Set the WindowStyle to "normal" to keep the app to the front
+                app.MotionAnalyserUIFigure.WindowStyle = 'normal';
+
+                app.Table = readtable((fullfile(app.path, app.file))); % import file into table
+                app.header = app.Table.Properties.VariableNames; % extract column names                
+
+                % Set the app window as the current figure to prevent the app
+                % from going to the back
+                figure(app.MotionAnalyserUIFigure);
+            end      
         end
     end
 
@@ -3826,9 +3863,9 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Button pushed function: AnimateButton
         function AnimateButtonPushed(app, event)
+            rotate3d(app.UIAxes12, 'on'); % Enable 3D rotation for app.UIAxes
             if numel(app.X) >=1
-                for m = 1:length(app.e)
-                    if app.nPOI{app.e(m)}(1) >= 2
+                    if all(cell2mat(app.nPOI(app.e(:))) > 2)
 
                         lines = cell(size((app.XAnim{app.e(1)}), 1), size(app.e, 2));
 
@@ -3870,23 +3907,11 @@ classdef MotionAnalyser < matlab.apps.AppBase
                             end
                         end
                     else
-
-
-                        %                     for k = 1:size(app.e, 2)
-                        %                         for o = 1:size((app.XAnim {1}), 1)
-                        %                             plot3(app.UIAxes12, app.XAnim{app.e(k)}(o), app.YAnim{app.e(k)}(o), app.ZAnim{app.e(k)}(o), 'ro');
-                        %                         drawnow
-                        %                         pause(app.TimeintervalEditField.Value); % pause for a short time
-                        %
-                        %                         end
-                        %                     end
                         msgbox('Insufficient POI')
                     end
-                end
             else
                 msgbox('No coordinates available')
             end
-
         end
 
         % Value changed function: PositionSlider_3
@@ -3917,7 +3942,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
                         'Color', cmap(app.e(k), :), 'Marker', app.Mtype, "MarkerEdgeColor",app.MarkerEdgeColor, ...
                         "MarkerFaceColor", app.MarkerFaceColor, "MarkerSize", app.Msize, "LineWidth", app.LineThickness);
                 end
-                app.UIAxes12.DataAspectRatio = [1 1 1];
+                app.UIAxes12.DataAspectRatio = [1 1 1];                
+                rotate3d(app.UIAxes12, 'on'); % Enable 3D rotation for app.UIAxes
                 Axes1_12Settings(app)
 
                 % ylim(app.UIAxes12,[(-app.dist.*1.5), (app.dist*1.5)]);
@@ -4152,15 +4178,15 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 case 'Angular acceleration'
                     a = convertStringsToChars (app.colname{app.e}(:, 2:(end-1)));
                     app.POIX.Items = a;
-                case 'E-phy envelope'
+                case 'E-phys envelope'
                     if isempty (app.envelope)
-                        msgbox('create an E-phy envelope first')
+                        msgbox('create an E-phys envelope first')
                         return
                     else
                         a = convertStringsToChars (app.colnameEMG);
                         app.POIX.Items = a;
                     end
-                case 'Raw E-phy trace'
+                case 'Raw E-phys trace'
                     if isempty (app.Voltage)
                         msgbox('Import an EMG first')
                         return
@@ -4214,17 +4240,17 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 case 'Angular acceleration'
                     a = convertStringsToChars (app.colname{app.e}(:, 2:(end-1)));
                     app.POIY.Items = a;
-                case 'E-phy envelope'
+                case 'E-phys envelope'
                     if isempty (app.envelope)
-                        msgbox('create an E-phy envelope first')
+                        msgbox('create an E-phys envelope first')
                         return
                     else
                         a = convertStringsToChars (app.colnameEMG);
                         app.POIY.Items = a;
                     end
-                case 'Raw E-phy trace'
+                case 'Raw E-phys trace'
                     if isempty (app.Voltage)
-                        msgbox('Import an E-phy envelope first')
+                        msgbox('Import an E-phys envelope first')
                         return
                     else
                         a = convertStringsToChars (app.colnameEMG);
@@ -4513,7 +4539,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         % Button pushed function: CalculateButton_3
         function CalculateButton_3Pushed(app, event)
             if isempty(app.envelope) == 1
-                msgbox ('Create an E-phy envelope  first')
+                msgbox ('Create an E-phys envelope  first')
             else
                 % calculate the area under the curve of the envelope
                 AUC = trapz(app.tEMG, app.envelope);
@@ -4805,11 +4831,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Menu selected function: ImportXYMenu
         function ImportXYMenuSelected(app, event)
-            clear Table
-            app.file= [];
-
             % Browse and copy values
-            [app.file, path] = uigetfile('*.csv;*.txt;*.xls;*.xlsx');
+            Browse(app)
 
             if isequal(app.file,0)
                 % User clicked the "Cancel" button
@@ -4819,16 +4842,15 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % Set the WindowStyle to "normal" to keep the app to the front
                 app.MotionAnalyserUIFigure.WindowStyle = 'normal';
 
-                Table = readtable((fullfile(path, app.file))); % import file into table
-                header = Table.Properties.VariableNames; % extract column names
-                namePOI = header (:,2:end);
+                % determine the name of the POI based on the header
+                namePOI = app.header (:,2:end);
 
                 % Set the app window as the current figure to prevent the app
                 % from going to the back
                 figure(app.MotionAnalyserUIFigure);
 
                 % extract values from the table
-                xy = Table{:,:}; % extra xy
+                xy = app.Table{:,:}; % extra xy
                 t = xy(:,1); % extract time
                 xy = xy(:,2:end); % remove the time column
                 x = xy(:,1:2:end); % all values from 1st column, every second column to the end
@@ -4855,16 +4877,13 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % Update Element Table
                 UpdateElementTable(app)
 
-                %% switch to the coordinates tab
+                % switch to the coordinates tab
                 app.TabGroup.SelectedTab = app.CoordinatesTab;
 
                 % Update
                 updateplot(app);
                 UpdateTable(app);
                 UpdateAnimStep(app);
-
-                % remove values from the table to free memory
-                clear Table;
             end
         end
 
@@ -4923,7 +4942,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 else
                     msgbox('No coordinates available')
                 end
-            elseif selectedTab == app.EphyTab
+            elseif selectedTab == app.EphysTab
                 if ~isempty(app.Voltage)
                     app.FirstPoint = app.n3;
                 else
@@ -4962,7 +4981,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     end
                 
 
-            elseif selectedTab == app.EphyTab
+            elseif selectedTab == app.EphysTab
                 if ~isempty(app.Voltage)
                     % Resize the data
                     app.tEMG = app.tEMG(app.FirstPoint:app.LastPoint, :);
@@ -5013,7 +5032,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 else
                     msgbox('No coordinates available')
                 end
-            elseif selectedTab == app.EphyTab
+            elseif selectedTab == app.EphysTab
                 if ~isempty(app.Voltage)
                     app.LastPoint = app.n3;
                 else
@@ -5059,10 +5078,15 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Cell selection callback: UITableElement
         function UITableElementCellSelection(app, event)
-            app.e = app.UITableElement.Selection;
-            UpdateElementTable(app)
-            UpdateTable(app)
-            updateplot(app)
+            selected_rows = app.UITableElement.Selection;
+            if ~isempty(selected_rows)                
+                app.e = app.UITableElement.Selection;
+                UpdateElementTable(app)
+                UpdateTable(app)
+                updateplot(app)
+            else
+                cla(app.UIAxes)
+            end
         end
 
         % Menu selected function: ReopenamatlabfileMenu
@@ -5626,8 +5650,13 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Cell selection callback: UITableElement_2
         function UITableElement_2CellSelection(app, event)
-            app.e = app.UITableElement_2.Selection;
-            UpdateElementTable(app)
+            selected_rows = app.UITableElement_2.Selection;
+            if ~isempty(selected_rows)                
+                app.e = app.UITableElement_2.Selection;
+                UpdateElementTable(app)               
+            else
+                cla(app.UIAxes12)
+            end                       
         end
 
         % Callback function
@@ -5682,38 +5711,38 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Menu selected function: ImportXandYKinoveaMenu
         function ImportXandYKinoveaMenuSelected(app, event)
-            % Browse and copy x-values
-            [app.file, path] = uigetfile('*.csv;*.txt;*.xls;*.xlsx');
+            % Browse to identify the x-file
+            Browse(app)
+
+%%%%% Need to check %%%%%
+
 
             if isequal(app.file,0)
                 % User clicked the "Cancel" button
                 return
             else
 
-                TableX = readtable((fullfile(path, app.file))); % import file into table
-                header = TableX.Properties.VariableNames; % extract column names
-                namePOI = header (:,2:end);
+                % indentify the labelling for the different POI
+                namePOI = app.header (:,2:end);
 
-                % extract X values from the table
-                x = TableX{:,:}; % extra x
-                t = x(:,1); % extract time
-                x = x(:,2:end); % remove the time column
-
-                % % Browse and copy y-values
-                [app.file, path] = uigetfile('*.csv;*.txt;*.xls;*.xlsx');
+                % extract t and X values from the table
+                t = app.Table(:,1); % extract time
+                x = app.Table(:,2:end); % extract x values
+                x{:,:};
+                
+                % Browse to identify the x-file
+                Browse(app)
 
                 if isequal(app.file,0)
                     % User clicked the "Cancel" button
                     return
                 else
-                    TableY = readtable((fullfile(path, app.file))); % import file into table
-
-                    % switch to the EMG tab
+                    % make sure the user is on the right tab
                     app.TabGroup.SelectedTab = app.CoordinatesTab;
 
                     % extract Y values from the table
-                    y = TableY{:,:}; % extra x
-                    y = y(:,2:end); % remove the time column
+                    % No need to extract time 
+                    y = app.Table(:,2:end); % extract x values
 
                     % Increment element number
                     h = app.te(end) + 1;
@@ -5746,10 +5775,6 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     updateplot(app);
                     UpdateTable(app);
                     UpdateAnimStep(app);
-
-                    % remove values from the table to free memory
-                    clear TableX;
-                    clear TableY;
                 end
             end
         end
@@ -5955,8 +5980,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Button down function: KinematicTab
         function KinematicTabButtonDown(app, event)
-            UpdateElementTable(app)
-            
+            UpdateElementTable(app)            
             if numel (app.colname)>=1
                 % define dropdown menu items based on POI names
                 app.SingleCurveKinematic.Items = app.colname{app.e(1)}(:,1:end);
@@ -6359,20 +6383,18 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Menu selected function: UseXYfileMenu
         function UseXYfileMenuSelected(app, event)
-            % Inform the software that there is Stitch
-            app.Is_stitch  = "yes";
-
             % Browse and copy values
-            [app.file, path] = uigetfile('*.csv;*.txt;*.xls;*.xlsx');
+            Browse(app)
             if isequal(app.file,0)
                 % User clicked the "Cancel" button
                 return
-            else
-
-                Table = readtable((fullfile(path, app.file))); % import file into table
+            else            
+            
+            % Inform the software that there is Stitch
+            app.Is_stitch  = "yes";            
 
                 % extract values from the table
-                xy = Table{:,:}; % extra xy
+                xy = app.Table{:,:}; % extra xy
                 t = xy(:,1); % extract time
                 xy = xy(:,2:end); % remove the time column
                 x = xy(:,1:2:end); % all values from 1st column, every second column to the end
@@ -6389,41 +6411,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 app.ZStitch = repmat(value, a(1), a(2));
 
                 % Update plot and table
-                updateplot(app)
-
-                % remove values from the table to free memory
-                Table =[]; %#ok<NASGU>
+                updateplot(app)         
             end
-        end
-
-        % Callback function
-        function UseXYZfileMenuSelected(app, event)
-            % Inform the software that there is Stitch
-            app.Is_stitch  = "yes";
-
-            % Browse and copy values
-            [app.file, path] = uigetfile('*.csv;*.txt;*.xls;*.xlsx');
-            Table = readtable((fullfile(path, app.file))); % import file into table
-
-            % extract values from the table
-            xyz = Table{:,:}; % extra xy
-            t = xyz(:,1); % extract time
-            xyz = xyz(:,2:end); % remove the time column
-            x = xyz(:,1:3:end); % all values from 1st column, every 3 columns to the end
-            y = xyz(:,2:3:end); % all values from the 2nd column, every 3 columns to the end
-            z = xyz(:,3:3:end); % all values from the 2nd column, every 3 columns to the end
-
-            % copy values in a cell array using e to identify the element
-            app.TStitch = t;
-            app.XStitch = x;
-            app.YStitch = y;
-            app.ZStitch = z;
-
-            % Update plot and table
-            updateplot(app)
-
-            % remove values from the table to free memory
-            Table =[]; %#ok<NASGU>
         end
 
         % Menu selected function: InvertXMenu_3
@@ -7004,8 +6993,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Menu selected function: ImportfromDeepLabCutMenu
         function ImportfromDeepLabCutMenuSelected(app, event)
-            % Browse and copy values
-            [app.file, path] = uigetfile('*.csv');
+            % Browse the file
+            Browse(app)
 
             if isequal(app.file,0)
                 % User clicked the "Cancel" button
@@ -7015,21 +7004,21 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 app.MotionAnalyserUIFigure.WindowStyle = 'normal';
 
                 % Import table
-                path = (fullfile(path, app.file)); % importing path
+                filepath = (fullfile(app.path, app.file)); % importing path
                 type path;
-                opts = detectImportOptions (path);
+                opts = detectImportOptions (filepath);
                 opts.DataLines = 4;
                 opts.VariableNamesLine = 2;
-                Table = readtable(path, opts);
-                header = Table.Properties.VariableNames; % extract column names
-                namePOI = header (:,2:end); % remove the time column
+                app.Table = readtable(filepath, opts);
+                app.header = app.Table.Properties.VariableNames; % extract column names
+                namePOI = app.header (:,2:end); % remove the time column
 
                 % Set the app window as the current figure to prevent the app
                 % from going to the back
                 figure(app.MotionAnalyserUIFigure);
 
                 % extract values from the table
-                xy = Table{:,:}; % extra xy
+                xy = app.Table{:,:}; % extra xy
                 t = xy(:,1); % extract time
                 xy = xy(:,2:end); % remove the time column
                 x = xy(:,1:3:end); % all values from 1st column, every second column to the end
@@ -7056,7 +7045,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % define dropdown menu items based on POI names
                 app.SingleCurveKinematic.Items = app.name{app.e}(:,1:2:end);
 
-                %% switch to the coordinate tab
+                % switch to the coordinate tab
                 app.TabGroup.SelectedTab = app.CoordinatesTab;
 
                 % Update Element Table
@@ -7065,10 +7054,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % Update
                 updateplot(app);
                 UpdateTable(app);
-                UpdateAnimStep(app);
-
-                % remove values from the table to free memory
-                clear Table;
+                UpdateAnimStep(app);                
 
                 % Define the sampling rate
                 dlgtitle = 'Sampling rate';
@@ -7094,22 +7080,17 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Menu selected function: EPhystracesMenu
         function EPhystracesMenuSelected(app, event)
-            clear Table
-            app.file= [];
-
-            % Browse
-            [app.file, path] = uigetfile('*.csv;*.txt;*.xls;*.xlsx');
+           % Browse and copy values
+            Browse(app)
 
             if isequal(app.file,0)
                 % User clicked the "Cancel" button
                 return
             else
-
                 % Set the WindowStyle to "normal" to keep the app to the front
                 app.MotionAnalyserUIFigure.WindowStyle = 'normal';
-                Table = readtable((fullfile(path, app.file)));
-                header = Table.Properties.VariableNames; % extract column names
-                data =Table{:,:}; % transform the numerical data table into matrix
+                
+                data = app.Table{:,:}; % transform the numerical data table into matrix
 
                 % Set the app window as the current figure to prevent the app from going to the back
                 figure(app.MotionAnalyserUIFigure);
@@ -7117,7 +7098,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % select data
                 app.tEMG = data(:,1); % time, all values of column 1
                 app.Voltage = data (:,2:end); % voltage, all values of column 2
-                app.colnameEMG = header(1, 2:end); % all muscle names without "time"
+                app.colnameEMG = app.header(1, 2:end); % all muscle names without "time"
 
                 % Remove zeros and NaN values that will create problemsfor fourier transform
                 A= [app.tEMG,app.Voltage];
@@ -7130,8 +7111,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 app.tEMG = A(:,1);
                 app.tEMG_old = app.tEMG;
 
-                %% switch to the EMG tab
-                app.TabGroup.SelectedTab = app.EphyTab;
+                % switch to the EMG tab
+                app.TabGroup.SelectedTab = app.EphysTab;
 
                 % Fill table
                 UpdateEMGTable(app);
@@ -7175,10 +7156,10 @@ classdef MotionAnalyser < matlab.apps.AppBase
             cla(app.UIAxesEMG); cla(app.UIAxesEMG,'reset');
 
             switch value
-                case "Filtered E-phy trace"
+                case "Filtered E-phys trace"
                     plotfEMG(app)
 
-                case "Raw E-phy trace"
+                case "Raw E-phys trace"
                     if ~isempty (app.Voltage)
                         % send data to the function that spread values on Y
                         app.transport = app.Voltage;
@@ -7196,9 +7177,9 @@ classdef MotionAnalyser < matlab.apps.AppBase
                         msgbox ('No values available for plotting')
                     end
 
-                case "E-phy envelope"
+                case "E-phys envelope"
                     if isempty(app.envelope) == 1
-                        msgbox ('Please create an E-phy envelope')
+                        msgbox ('Please create an E-phys envelope')
                     else
                         plotenvelope(app)
                     end
@@ -7206,7 +7187,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 case "Raw/envelope"
 
                     if isempty(app.envelope) == 1
-                        msgbox ('Please create an E-phy envelope')
+                        msgbox ('Please create an E-phys envelope')
                     else
                         % send data to the function that spread values on Y
                         app.transport = [app.Voltage; app.envelope]; % place envelope values in the same column as EMG
@@ -7226,7 +7207,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                         hold (app.UIAxesEMG, 'on');
                         plot (app.UIAxesEMG, app.tEMG, E2,'Color', 'r');
                         hold (app.UIAxesEMG, 'off');
-                        title(app.UIAxesEMG, 'Raw & E-phy envelope');
+                        title(app.UIAxesEMG, 'Raw & E-phys envelope');
                         legend(app.UIAxesEMG, app.colnameEMG);
                     end
 
@@ -8492,7 +8473,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
             if selectedTab == app.CoordinatesTab % Check if the selected tab is CoordinatesTab
                 Revert(app)
-            elseif selectedTab == app.EphyTab % Check if the selected tab is EMGTab
+            elseif selectedTab == app.EphysTab % Check if the selected tab is EMGTab
                 app.fEMG = app.Voltage_old;
                 app.Voltage = app.Voltage_old;
                 app.tEMG = app.tEMG_old;
@@ -8637,7 +8618,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 UpdateTable (app);
                 UpdateAnimStep(app);
 
-            elseif selectedTab == app.EphyTab % Check if the selected tab is EMGTab
+            elseif selectedTab == app.EphysTab % Check if the selected tab is EMGTab
                 app.fEMG = app.Signal;
                 app.Voltage = app.Signal;
                 app.tEMG = app.tSignal;
@@ -8667,8 +8648,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
             end
         end
 
-        % Menu selected function: FilteredEphytraceMenu
-        function FilteredEphytraceMenuSelected(app, event)
+        % Menu selected function: FilteredEphystraceMenu
+        function FilteredEphystraceMenuSelected(app, event)
             % Define default input equation
             default_eqn = 'sin(2*pi*25*t) + 0.5*sin(2*pi*30*t) + 0.2*sin(2*pi*35*t)'; % Signal with frequencies at 25, 30, and 35 Hz
 
@@ -8680,7 +8661,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             answer = inputdlg(prompt, dlg_title, num_lines, default_ans);
 
             %% switch to the EMG tab
-            app.TabGroup.SelectedTab = app.EphyTab;
+            app.TabGroup.SelectedTab = app.EphysTab;
 
             %% Arbitrary values to replace fEMG
             app.Freq = 3000; % Sampling rate (Hz)
@@ -9071,21 +9052,13 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Menu selected function: SensorsignalsMenu
         function SensorsignalsMenuSelected(app, event)
-            app.file = [];
+            Browse(app)
 
-            % Browse
-            [app.file, path] = uigetfile('*.csv;*.txt;*.xls;*.xlsx');
             if isequal(app.file,0)
                 % User clicked the "Cancel" button
                 return
             else
-                % Set the WindowStyle to "normal" to keep the app to the front
-                app.MotionAnalyserUIFigure.WindowStyle = 'normal';
-
-                % readtable
-                Table = readtable((fullfile(path, app.file)));
-                header = Table.Properties.VariableNames; % extract column names
-                data = Table{:,:}; % transform the numerical data table into matrix
+                data = app.Table{:,:}; % transform the numerical data table into matrix
 
                 % Set the app window as the current figure to prevent the app from going to the back
                 figure(app.MotionAnalyserUIFigure);
@@ -9093,7 +9066,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % select data
                 app.tSensor = data(:,1); % time, all values of column 1
                 app.SensorValues = data (:,2:end); % sensor values, all values of column 2
-                app.colnameSensor = header(1, 2:end); % all sensor names without "time"
+                app.colnameSensor = app.header(1, 2:end); % all sensor names without "time"
 
                 % Remove zeros and NaN values that will create problems for fourier transform
                 A = [app.tSensor,app.SensorValues];
@@ -9106,7 +9079,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 app.tSensor = A(:,1);
                 app.tSensor_old = app.tSensor;
 
-                %% switch to the Sensor tab
+                % switch to the Sensor tab
                 app.TabGroup.SelectedTab = app.SensorTab;
 
                 % Fill table
@@ -9431,29 +9404,26 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Menu selected function: ImportXYZMenu
         function ImportXYZMenuSelected(app, event)
-            clear Table
-            app.file= [];
-
             % Browse and copy values
-            [app.file, path] = uigetfile('*.csv;*.txt;*.xls;*.xlsx');
+            Browse(app)
 
             if isequal(app.file,0)
                 % User clicked the "Cancel" button
                 return
             else
+
                 % Set the WindowStyle to "normal" to keep the app to the front
                 app.MotionAnalyserUIFigure.WindowStyle = 'normal';
-
-                Table = readtable((fullfile(path, app.file))); % import file into table
-                header = Table.Properties.VariableNames; % extract column names
-                namePOI = header (:,2:end);
+            
+                % Determine the label of the POIs
+                namePOI = app.header (:,2:end);
 
                 % Set the app window as the current figure to prevent the app
                 % from going to the back
                 figure(app.MotionAnalyserUIFigure);
 
                 % extract values from the table
-                xyz = Table{:,:}; % extra xy
+                xyz = app.Table{:,:}; % extract xyz
                 t = xyz(:,1); % extract time
                 xyz = xyz(:,2:end); % remove the time column
                 x = xyz(:,1:3:end); % all values from 1st column, every third column to the end
@@ -9478,7 +9448,6 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 a = cellstr(app.file);
                 app.ElementName = [app.ElementName; a];
 
-
                 % Update Element Table
                 UpdateElementTable(app)
 
@@ -9488,10 +9457,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % Update
                 updateplot(app);
                 UpdateTable(app);
-                UpdateAnimStep(app);
-
-                % remove values from the table to free memory
-                clear Table;
+                UpdateAnimStep(app);                
             end
         end
 
@@ -9700,7 +9666,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 UpdateTable (app);
                 UpdateAnimStep(app);
 
-            elseif selectedTab == app.EphyTab % Check if the selected tab is EMGTab
+            elseif selectedTab == app.EphysTab % Check if the selected tab is EMGTab
                 app.fEMG = app.Signal;
                 app.Voltage = app.Signal;
                 app.tEMG = app.tSignal;
@@ -9767,13 +9733,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Menu selected function: RemovecolumnMenu
         function RemovecolumnMenuSelected(app, event)
-            selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
-            
-            % check number of elements if the tab is coordinate at stop the           
-            if selectedTab == app.CoordinatesTab
-            NumberElement = CheckNumberElementSelected(app); 
-            return
-            end
+            selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab            
 
             bkpData(app)
 
@@ -9787,9 +9747,18 @@ classdef MotionAnalyser < matlab.apps.AppBase
             bottom = screensize(4)/2 - height/2;
             position = [left, bottom, width, height];
 
-            if selectedTab == app.CoordinatesTab
-                options = app.colname{app.e};
-            elseif selectedTab == app.EphyTab
+            if selectedTab == app.CoordinatesTab 
+                if selectedTab == app.CoordinatesTab
+                   % check number of elements if the tab is coordinate at
+                   % stop if it is more that 1
+                    NumberElement = CheckNumberElementSelected(app);
+                    if NumberElement == 1                    
+                    options = app.colname{app.e};
+                    else
+                        return
+                    end
+                end
+            elseif selectedTab == app.EphysTab
                 options = app.colnameEMG;
             elseif selectedTab == app.SensorTab
                 options = app.colnameSensor;
@@ -9798,7 +9767,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 return
             end
 
-            % Create a dialog box with two dropdown menus
+            % Create a dialog box with a dropdown menus
             dlg = dialog('Name', 'Remove', 'Position', position);
             uicontrol(dlg, 'Style', 'text', 'String', 'Please select the dataset to remove', 'Position', [50, 150, 250, 25]);
             Selection =  uicontrol(dlg, 'Style', 'popupmenu', 'String', options, 'Position', [50, 125, 250, 25]);
@@ -9809,8 +9778,12 @@ classdef MotionAnalyser < matlab.apps.AppBase
             % Wait for the user to close the dialog box
             uiwait(dlg);
 
-            % Get the index of the selected options from the dropdown menus
-            ColumnNB = get(Selection, 'Value');
+            % Get the index of the selected options from the dropdown menus, if no selection stop the function
+            if ~isempty(Selection) && isvalid(Selection) 
+                ColumnNB = get(Selection, 'Value');
+            else
+                return
+            end
 
             % Close the dialog box
             delete(dlg);
@@ -9826,7 +9799,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     updateplot(app);
                     UpdateTable(app);
                     UpdateAnimStep(app);                  
-            elseif selectedTab == app.EphyTab
+            elseif selectedTab == app.EphysTab
                 % remove the relevant column
                 app.fEMG(:, ColumnNB) = [];
                 app.Voltage(:, ColumnNB) = [];
@@ -10126,9 +10099,224 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         end
 
-        % Menu selected function: RenameMenu
-        function RenameMenuSelected(app, event)
+        % Button down function: CoordinatesTab
+        function CoordinatesTabButtonDown(app, event)
+            if ~isempty(app.UITableElement.Selection)                
+                app.e = app.UITableElement.Selection;
+            else
+                app.e = 1;
+            end
+        end
 
+        % Button down function: AnimationTab
+        function AnimationTabButtonDown(app, event)
+            if ~isempty(app.UITableElement_2.Selection)                
+                app.e = app.UITableElement_2.Selection;
+            elseif ~isempty (app.UITableElement.Selection) 
+                app.e = app.UITableElement.Selection;
+            else
+                app.e = 1;
+            end
+        end
+
+        % Menu selected function: UseDeepLabCutfileMenu
+        function UseDeepLabCutfileMenuSelected(app, event)
+            msgbox('Not available yet')
+        end
+
+        % Button pushed function: StopButton
+        function StopButtonPushed(app, event)
+            % Clear the specified axes by deleting its children
+            delete(app.UIAxes12.Children);
+        end
+
+        % Button pushed function: CaptureButton
+        function CaptureButtonPushed(app, event)
+           % This function captures the azimuth and elevation of the UIAxes12
+           [app.SetazimuthtoEditField.Value, app.SetelevationtoEditField.Value] = view(app.UIAxes12); % capture
+           updateview(app) 
+        end
+
+        % Menu selected function: MovecolumnMenu
+        function MovecolumnMenuSelected(app, event)
+            % This function allows the user to choose a column of data and
+            % move it to another position with respect to the other columns
+            
+            selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab            
+
+            bkpData(app)
+
+            % Get the screen size
+            screensize = get(groot, 'Screensize');
+
+            % Define the position and size of the dialog box
+            width = 350;
+            height = 200;
+            left = screensize(3)/2 - width/2;
+            bottom = screensize(4)/2 - height/2;
+            position = [left, bottom, width, height];
+
+            if selectedTab == app.CoordinatesTab 
+                if selectedTab == app.CoordinatesTab
+                   % check number of elements if the tab is coordinate at
+                   % stop if it is more that 1
+                    NumberElement = CheckNumberElementSelected(app);
+                    if NumberElement == 1                    
+                    labels = app.colname{app.e};
+                    colnum = (1:size(app.colname{app.e}, 2))';
+                    else
+                        return
+                    end
+                end
+            elseif selectedTab == app.EphysTab
+                labels = app.colnameEMG;
+                colnum = (1:size(app.colnameEMG, 2))';
+            elseif selectedTab == app.SensorTab
+                labels = app.colnameSensor;
+                colnum = (1:size(app.colnameSensor, 2))';
+            else
+                msgbox ('Select the Coordinates or E-phys or Sensor tab to use this function')
+                return
+            end
+
+            % Create a dialog box with two dropdown menus
+            dlg = dialog('Name', 'Move', 'Position', position);
+            uicontrol(dlg, 'Style', 'text', 'String', 'Please select the column to move', 'Position', [50, 150, 250, 25]);
+            Selection =  uicontrol(dlg, 'Style', 'popupmenu', 'String', labels, 'Position', [50, 130, 250, 25]);
+            uicontrol(dlg, 'Style', 'text', 'String', 'Please select the position you want to move it to', 'Position', [50, 100, 250, 25]);
+            Selection2 =  uicontrol(dlg, 'Style', 'popupmenu', 'String', colnum, 'Position', [50, 80, 250, 25]);
+
+            % Add a push button to the dialog box
+            uicontrol(dlg, 'Style', 'pushbutton', 'String', 'OK', 'Position', [50, 45, 250, 25], 'Callback', 'uiresume(gcbf)');
+
+            % Wait for the user to close the dialog box
+            uiwait(dlg);
+
+            % Get the index of the selected options from the dropdown menus, if no selection stop the function
+            if ~isempty(Selection) && ~isempty(Selection2) && isvalid(Selection) && isvalid(Selection2)
+                ColumnNB = get(Selection, 'Value');
+                MoveVal = get(Selection2, 'Value');
+            else
+                return
+            end
+
+            % Close the dialog box
+            delete(dlg);
+
+            if selectedTab == app.CoordinatesTab
+                % move the column for X values
+                column_to_move = app.X{app.e}(:, ColumnNB); % copy the column to move in new variable
+                app.X{app.e}(:, ColumnNB) = []; % delete column to move from original dataset
+                app.X{app.e} = [app.X{app.e}(:, 1:MoveVal-1), column_to_move, app.X{app.e}(:, MoveVal:end)]; % Insert the extracted column at the specified position
+                % move the column for Y values
+                column_to_move = app.Y{app.e}(:, ColumnNB);
+                app.Y{app.e}(:, ColumnNB) = [];
+                app.Y{app.e} = [app.Y{app.e}(:, 1:MoveVal-1), column_to_move, app.Y{app.e}(:, MoveVal:end)];
+                % move the column for Z values
+                column_to_move = app.Z{app.e}(:, ColumnNB);
+                app.Z{app.e}(:, ColumnNB) = [];
+                app.Z{app.e} = [app.Z{app.e}(:, 1:MoveVal-1), column_to_move, app.Z{app.e}(:, MoveVal:end)];
+                % move the column names
+                column_to_move = app.colname{app.e}(:, ColumnNB);
+                app.colname{app.e}(:, ColumnNB) = [];
+                app.colname{app.e} = [app.colname{app.e}(:, 1:MoveVal-1), column_to_move, app.colname{app.e}(:, MoveVal:end)];
+
+                % Update
+                updateplot(app);
+                UpdateTable(app);
+                UpdateAnimStep(app);
+
+            elseif selectedTab == app.EphysTab
+                column_to_move = app.fEMG(:, ColumnNB); % copy the column to move in new variable
+                app.fEMG(:, ColumnNB) = []; % delete column to move from original dataset
+                app.fEMG = [app.fEMG(:, 1:MoveVal-1), column_to_move, app.fEMG(:, MoveVal:end)]; 
+
+                column_to_move = app.Voltage(:, ColumnNB); 
+                app.Voltage(:, ColumnNB) = []; 
+                app.Voltage = [app.Voltage(:, 1:MoveVal-1), column_to_move, app.Voltage(:, MoveVal:end)];
+
+                column_to_move = app.colnameEMG(:, ColumnNB); 
+                app.colnameEMG(:, ColumnNB) = []; 
+                app.colnameEMG = [app.colnameEMG(:, 1:MoveVal-1), column_to_move, app.colnameEMG(:, MoveVal:end)];
+
+                % Update
+                plotfEMG(app);
+                UpdateEMGTable(app);
+
+            elseif selectedTab == app.SensorTab
+                column_to_move = app.fSensorValues(:, ColumnNB); % copy the column to move in new variable
+                app.fSensorValues(:, ColumnNB) = []; % delete column to move from original dataset
+                app.fSensorValues = [app.fSensorValues(:, 1:MoveVal-1), column_to_move, app.fSensorValues(:, MoveVal:end)]; 
+
+                column_to_move = app.SensorValues(:, ColumnNB); 
+                app.SensorValues(:, ColumnNB) = []; 
+                app.SensorValues = [app.SensorValues(:, 1:MoveVal-1), column_to_move, app.SensorValues(:, MoveVal:end)];
+
+                column_to_move = app.colnameSensor(:, ColumnNB); 
+                app.colnameSensor(:, ColumnNB) = []; 
+                app.colnameSensor = [app.colnameSensor(:, 1:MoveVal-1), column_to_move, app.colnameSensor(:, MoveVal:end)];
+
+                % Update
+                plotfSensor(app); % refresh plot
+                UpdateSensorTable(app);
+            else
+            end
+
+        end
+
+        % Callback function: not associated with a component
+        function testButtonPushed(app, event)
+            rotate3d(app.UIAxes12, 'on'); % Enable 3D rotation for app.UIAxes
+            if numel(app.X) >=1
+                for m = 1:length(app.e)
+                    if app.nPOI{app.e(m)}(1) >= 2
+
+                        lines = cell(size((app.XAnim{app.e(1)}), 1), size(app.e, 2));
+
+                        cla(app.UIAxes12,'reset')
+                        cmap = get(app.UIAxes12,'defaultAxesColorOrder');
+
+                        % plot all segments
+                        axis(app.UIAxes12, 'auto')
+                        hold(app.UIAxes12, 'on')
+
+                        for k=1:size(app.e, 2)
+                            lines(:, k) = num2cell(plot3(app.UIAxes12, app.XAnim{app.e(k)}', app.YAnim{app.e(k)}', app.Z{app.e(k)}', ...
+                                'Color', cmap(k, :), 'Marker', app.Mtype, "MarkerEdgeColor",app.MarkerEdgeColor, ...
+                                "MarkerFaceColor", app.MarkerFaceColor, "MarkerSize", app.Msize, "LineWidth", app.LineThickness));
+                        end
+                        app.UIAxes12.DataAspectRatio = [1 1 1];
+                        Axes1_12Settings(app)
+
+                        % ylim(app.UIAxes12,[(-app.dist.*1.5), (app.dist*1.5)]);
+                        updateview(app)
+
+                        %end
+                        hold(app.UIAxes12, 'off')
+                        axis(app.UIAxes12, 'manual')
+
+                        for i = 2:size(lines, 1)
+                            for l = lines(i, :)
+                                l{1}.Visible = 0; %#ok<FXSET>
+                            end
+                        end
+
+                        for i = 2:size(lines, 1)
+                            pause(app.TimeInterval)
+                            for l = lines(i-1, :)
+                                l{1}.Visible = 0; %#ok<FXSET>
+                            end
+                            for l = lines(i, :)
+                                l{1}.Visible = 1; %#ok<FXSET>
+                            end
+                        end
+                    else
+                        msgbox('Insufficient POI')
+                    end
+                end
+            else
+                msgbox('No coordinates available')
+            end
         end
     end
 
@@ -10186,6 +10374,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
             % Create UseDeepLabCutfileMenu
             app.UseDeepLabCutfileMenu = uimenu(app.StitchfileMenu);
+            app.UseDeepLabCutfileMenu.MenuSelectedFcn = createCallbackFcn(app, @UseDeepLabCutfileMenuSelected, true);
             app.UseDeepLabCutfileMenu.Text = 'Use DeepLabCut file';
 
             % Create EPhystracesMenu
@@ -10231,10 +10420,10 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.Elements1and2Menu.MenuSelectedFcn = createCallbackFcn(app, @Elements1and2MenuSelected, true);
             app.Elements1and2Menu.Text = 'Elements 1 and 2';
 
-            % Create FilteredEphytraceMenu
-            app.FilteredEphytraceMenu = uimenu(app.LoadexamplesMenu);
-            app.FilteredEphytraceMenu.MenuSelectedFcn = createCallbackFcn(app, @FilteredEphytraceMenuSelected, true);
-            app.FilteredEphytraceMenu.Text = 'Filtered E-phy trace';
+            % Create FilteredEphystraceMenu
+            app.FilteredEphystraceMenu = uimenu(app.LoadexamplesMenu);
+            app.FilteredEphystraceMenu.MenuSelectedFcn = createCallbackFcn(app, @FilteredEphystraceMenuSelected, true);
+            app.FilteredEphystraceMenu.Text = 'Filtered E-phys trace';
 
             % Create SensorsignalMenu
             app.SensorsignalMenu = uimenu(app.LoadexamplesMenu);
@@ -10501,9 +10690,13 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.RemovecolumnMenu.MenuSelectedFcn = createCallbackFcn(app, @RemovecolumnMenuSelected, true);
             app.RemovecolumnMenu.Text = 'Remove column';
 
+            % Create MovecolumnMenu
+            app.MovecolumnMenu = uimenu(app.EditMenu);
+            app.MovecolumnMenu.MenuSelectedFcn = createCallbackFcn(app, @MovecolumnMenuSelected, true);
+            app.MovecolumnMenu.Text = 'Move column';
+
             % Create RenameMenu
             app.RenameMenu = uimenu(app.EditMenu);
-            app.RenameMenu.MenuSelectedFcn = createCallbackFcn(app, @RenameMenuSelected, true);
             app.RenameMenu.Text = 'Rename';
 
             % Create RevertMenu_11
@@ -10813,6 +11006,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.CoordinatesTab = uitab(app.TabGroup);
             app.CoordinatesTab.Tooltip = {''};
             app.CoordinatesTab.Title = 'Coordinates';
+            app.CoordinatesTab.ButtonDownFcn = createCallbackFcn(app, @CoordinatesTabButtonDown, true);
 
             % Create UIAxes
             app.UIAxes = uiaxes(app.CoordinatesTab);
@@ -10927,6 +11121,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.AnimationTab = uitab(app.TabGroup);
             app.AnimationTab.Tooltip = {''};
             app.AnimationTab.Title = 'Animation';
+            app.AnimationTab.ButtonDownFcn = createCallbackFcn(app, @AnimationTabButtonDown, true);
 
             % Create UIAxes12
             app.UIAxes12 = uiaxes(app.AnimationTab);
@@ -10961,42 +11156,48 @@ classdef MotionAnalyser < matlab.apps.AppBase
             % Create AdjustPanel
             app.AdjustPanel = uipanel(app.AnimationTab);
             app.AdjustPanel.Title = 'Adjust';
-            app.AdjustPanel.Position = [10 176 119 185];
+            app.AdjustPanel.Position = [10 148 119 213];
 
             % Create SetazimuthtoEditFieldLabel
             app.SetazimuthtoEditFieldLabel = uilabel(app.AdjustPanel);
             app.SetazimuthtoEditFieldLabel.HorizontalAlignment = 'right';
-            app.SetazimuthtoEditFieldLabel.Position = [8 141 87 22];
+            app.SetazimuthtoEditFieldLabel.Position = [8 169 87 22];
             app.SetazimuthtoEditFieldLabel.Text = 'Set azimuth to ';
 
             % Create SetazimuthtoEditField
             app.SetazimuthtoEditField = uieditfield(app.AdjustPanel, 'numeric');
             app.SetazimuthtoEditField.ValueChangedFcn = createCallbackFcn(app, @SetazimuthtoEditFieldValueChanged, true);
-            app.SetazimuthtoEditField.Position = [14 116 42 22];
+            app.SetazimuthtoEditField.Position = [14 144 42 22];
 
             % Create SetelevationtoEditFieldLabel
             app.SetelevationtoEditFieldLabel = uilabel(app.AdjustPanel);
             app.SetelevationtoEditFieldLabel.VerticalAlignment = 'top';
-            app.SetelevationtoEditFieldLabel.Position = [12 85 106 22];
+            app.SetelevationtoEditFieldLabel.Position = [12 113 106 22];
             app.SetelevationtoEditFieldLabel.Text = 'Set elevation to ';
 
             % Create SetelevationtoEditField
             app.SetelevationtoEditField = uieditfield(app.AdjustPanel, 'numeric');
             app.SetelevationtoEditField.ValueChangedFcn = createCallbackFcn(app, @SetelevationtoEditFieldValueChanged, true);
-            app.SetelevationtoEditField.Position = [14 66 42 22];
+            app.SetelevationtoEditField.Position = [14 94 42 22];
             app.SetelevationtoEditField.Value = 90;
 
             % Create TimeintervalEditFieldLabel
             app.TimeintervalEditFieldLabel = uilabel(app.AdjustPanel);
             app.TimeintervalEditFieldLabel.VerticalAlignment = 'top';
-            app.TimeintervalEditFieldLabel.Position = [13 30 106 22];
+            app.TimeintervalEditFieldLabel.Position = [12 28 106 22];
             app.TimeintervalEditFieldLabel.Text = 'Time interval';
 
             % Create TimeintervalEditField
             app.TimeintervalEditField = uieditfield(app.AdjustPanel, 'numeric');
             app.TimeintervalEditField.ValueChangedFcn = createCallbackFcn(app, @TimeintervalEditFieldValueChanged, true);
-            app.TimeintervalEditField.Position = [14 9 42 22];
+            app.TimeintervalEditField.Position = [14 7 42 22];
             app.TimeintervalEditField.Value = 0.1;
+
+            % Create CaptureButton
+            app.CaptureButton = uibutton(app.AdjustPanel, 'push');
+            app.CaptureButton.ButtonPushedFcn = createCallbackFcn(app, @CaptureButtonPushed, true);
+            app.CaptureButton.Position = [15 63 90 23];
+            app.CaptureButton.Text = 'Set from display';
 
             % Create NormalisetracestoPanel
             app.NormalisetracestoPanel = uipanel(app.AnimationTab);
@@ -11030,7 +11231,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.AnimateButton = uibutton(app.AnimationTab, 'push');
             app.AnimateButton.ButtonPushedFcn = createCallbackFcn(app, @AnimateButtonPushed, true);
             app.AnimateButton.Tooltip = {'Animate the selected element(s)'};
-            app.AnimateButton.Position = [10 146 119 22];
+            app.AnimateButton.Position = [10 114 119 22];
             app.AnimateButton.Text = 'Animate';
 
             % Create UITableElement_2
@@ -11043,6 +11244,13 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.UITableElement_2.CellSelectionCallback = createCallbackFcn(app, @UITableElement_2CellSelection, true);
             app.UITableElement_2.Tooltip = {'Select the element you want to work with. To plot multiple elements, hold down the ''Ctrl'' key while selecting. You can also rename the selected elements as needed'};
             app.UITableElement_2.Position = [11 524 121 115];
+
+            % Create StopButton
+            app.StopButton = uibutton(app.AnimationTab, 'push');
+            app.StopButton.ButtonPushedFcn = createCallbackFcn(app, @StopButtonPushed, true);
+            app.StopButton.Tooltip = {'Animate the selected element(s)'};
+            app.StopButton.Position = [11 88 119 23];
+            app.StopButton.Text = 'Stop';
 
             % Create KinematicTab
             app.KinematicTab = uitab(app.TabGroup);
@@ -11249,13 +11457,13 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.UITableData.RowName = {};
             app.UITableData.Position = [235 313 912 308];
 
-            % Create EphyTab
-            app.EphyTab = uitab(app.TabGroup);
-            app.EphyTab.Tooltip = {''};
-            app.EphyTab.Title = 'E-phy';
+            % Create EphysTab
+            app.EphysTab = uitab(app.TabGroup);
+            app.EphysTab.Tooltip = {''};
+            app.EphysTab.Title = 'E-phys';
 
             % Create UIAxesEMG
-            app.UIAxesEMG = uiaxes(app.EphyTab);
+            app.UIAxesEMG = uiaxes(app.EphysTab);
             title(app.UIAxesEMG, 'Title')
             xlabel(app.UIAxesEMG, 'X')
             ylabel(app.UIAxesEMG, 'Y')
@@ -11263,44 +11471,44 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.UIAxesEMG.Position = [254 48 917 567];
 
             % Create UITable16
-            app.UITable16 = uitable(app.EphyTab);
+            app.UITable16 = uitable(app.EphysTab);
             app.UITable16.ColumnName = {'Column 1'; 'Column 2'; 'Column 3'; 'Column 4'};
             app.UITable16.RowName = {};
             app.UITable16.Position = [10 10 226 409];
 
-            % Create RawEphyvaluesLabel
-            app.RawEphyvaluesLabel = uilabel(app.EphyTab);
-            app.RawEphyvaluesLabel.Position = [12 418 204 26];
-            app.RawEphyvaluesLabel.Text = 'Raw E-phy values';
+            % Create RawEphysvaluesLabel
+            app.RawEphysvaluesLabel = uilabel(app.EphysTab);
+            app.RawEphysvaluesLabel.Position = [12 418 204 26];
+            app.RawEphysvaluesLabel.Text = 'Raw E-phys values';
 
             % Create SamplingrateHzLabel
-            app.SamplingrateHzLabel = uilabel(app.EphyTab);
+            app.SamplingrateHzLabel = uilabel(app.EphysTab);
             app.SamplingrateHzLabel.HorizontalAlignment = 'right';
             app.SamplingrateHzLabel.Position = [4 594 106 22];
             app.SamplingrateHzLabel.Text = 'Sampling rate (Hz)';
 
             % Create SamplingDataRate
-            app.SamplingDataRate = uieditfield(app.EphyTab, 'numeric');
+            app.SamplingDataRate = uieditfield(app.EphysTab, 'numeric');
             app.SamplingDataRate.ValueChangedFcn = createCallbackFcn(app, @SamplingDataRateValueChanged, true);
             app.SamplingDataRate.Editable = 'off';
             app.SamplingDataRate.Tooltip = {'Current sampling rate'};
             app.SamplingDataRate.Position = [128 594 106 22];
 
             % Create CalculateButton_3
-            app.CalculateButton_3 = uibutton(app.EphyTab, 'push');
+            app.CalculateButton_3 = uibutton(app.EphysTab, 'push');
             app.CalculateButton_3.ButtonPushedFcn = createCallbackFcn(app, @CalculateButton_3Pushed, true);
             app.CalculateButton_3.Tooltip = {'Calculate the area under the curve of the envelope. Values from the different recordings are displayed in the table below'};
             app.CalculateButton_3.Position = [174 549 62 22];
             app.CalculateButton_3.Text = 'Calculate';
 
             % Create TimescalefactorSliderLabel
-            app.TimescalefactorSliderLabel = uilabel(app.EphyTab);
+            app.TimescalefactorSliderLabel = uilabel(app.EphysTab);
             app.TimescalefactorSliderLabel.HorizontalAlignment = 'right';
             app.TimescalefactorSliderLabel.Position = [740 16 96 22];
             app.TimescalefactorSliderLabel.Text = 'Time scale factor';
 
             % Create TimescalefactorSlider
-            app.TimescalefactorSlider = uislider(app.EphyTab);
+            app.TimescalefactorSlider = uislider(app.EphysTab);
             app.TimescalefactorSlider.Limits = [0 50];
             app.TimescalefactorSlider.MajorTicks = [];
             app.TimescalefactorSlider.ValueChangedFcn = createCallbackFcn(app, @TimescalefactorSliderValueChanged, true);
@@ -11308,13 +11516,13 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.TimescalefactorSlider.Position = [850 26 267 3];
 
             % Create AmplitudescalefactorSliderLabel
-            app.AmplitudescalefactorSliderLabel = uilabel(app.EphyTab);
+            app.AmplitudescalefactorSliderLabel = uilabel(app.EphysTab);
             app.AmplitudescalefactorSliderLabel.HorizontalAlignment = 'right';
             app.AmplitudescalefactorSliderLabel.Position = [313 15 123 22];
             app.AmplitudescalefactorSliderLabel.Text = 'Amplitude scale factor';
 
             % Create AmplitudescalefactorSlider
-            app.AmplitudescalefactorSlider = uislider(app.EphyTab);
+            app.AmplitudescalefactorSlider = uislider(app.EphysTab);
             app.AmplitudescalefactorSlider.Limits = [0 50];
             app.AmplitudescalefactorSlider.MajorTicks = [];
             app.AmplitudescalefactorSlider.ValueChangedFcn = createCallbackFcn(app, @AmplitudescalefactorSliderValueChanged, true);
@@ -11322,44 +11530,44 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.AmplitudescalefactorSlider.Position = [450 25 223 3];
 
             % Create UITableAUC
-            app.UITableAUC = uitable(app.EphyTab);
+            app.UITableAUC = uitable(app.EphysTab);
             app.UITableAUC.ColumnName = {'Column 1'; 'Column 2'; 'Column 3'; 'Column 4'};
             app.UITableAUC.RowName = {};
             app.UITableAUC.Position = [9 475 227 71];
 
             % Create AreaunderthecurveLabel
-            app.AreaunderthecurveLabel = uilabel(app.EphyTab);
+            app.AreaunderthecurveLabel = uilabel(app.EphysTab);
             app.AreaunderthecurveLabel.Position = [10 547 194 26];
             app.AreaunderthecurveLabel.Text = 'Area under the curve';
 
             % Create PlotDropDownLabel
-            app.PlotDropDownLabel = uilabel(app.EphyTab);
+            app.PlotDropDownLabel = uilabel(app.EphysTab);
             app.PlotDropDownLabel.HorizontalAlignment = 'right';
             app.PlotDropDownLabel.Position = [8 622 26 22];
             app.PlotDropDownLabel.Text = 'Plot';
 
             % Create PlotDropDown
-            app.PlotDropDown = uidropdown(app.EphyTab);
-            app.PlotDropDown.Items = {'Choose', 'Raw E-phy trace', 'Filtered E-phy trace', 'E-phy envelope', 'Raw/envelope', 'FFT power spectrum', 'FFT spectrogram'};
+            app.PlotDropDown = uidropdown(app.EphysTab);
+            app.PlotDropDown.Items = {'Choose', 'Raw E-phys trace', 'Filtered E-phys trace', 'E-phys envelope', 'Raw/envelope', 'FFT power spectrum', 'FFT spectrogram'};
             app.PlotDropDown.ValueChangedFcn = createCallbackFcn(app, @PlotDropDownValueChanged, true);
             app.PlotDropDown.Tooltip = {''};
             app.PlotDropDown.Position = [49 622 187 22];
             app.PlotDropDown.Value = 'Choose';
 
             % Create EditField
-            app.EditField = uieditfield(app.EphyTab, 'numeric');
+            app.EditField = uieditfield(app.EphysTab, 'numeric');
             app.EditField.ValueChangedFcn = createCallbackFcn(app, @EditFieldValueChanged, true);
             app.EditField.Position = [676 16 34 22];
             app.EditField.Value = 50;
 
             % Create EditField_2
-            app.EditField_2 = uieditfield(app.EphyTab, 'numeric');
+            app.EditField_2 = uieditfield(app.EphysTab, 'numeric');
             app.EditField_2.ValueChangedFcn = createCallbackFcn(app, @EditField_2ValueChanged, true);
             app.EditField_2.Position = [1120 16 34 22];
             app.EditField_2.Value = 50;
 
             % Create PositionSliderEMG
-            app.PositionSliderEMG = uislider(app.EphyTab);
+            app.PositionSliderEMG = uislider(app.EphysTab);
             app.PositionSliderEMG.MajorTicks = [];
             app.PositionSliderEMG.ValueChangedFcn = createCallbackFcn(app, @PositionSliderEMGValueChanged, true);
             app.PositionSliderEMG.MinorTicks = [];
@@ -11368,24 +11576,24 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.PositionSliderEMG.Position = [420 632 634 3];
 
             % Create PositionLabelEMG
-            app.PositionLabelEMG = uilabel(app.EphyTab);
+            app.PositionLabelEMG = uilabel(app.EphysTab);
             app.PositionLabelEMG.Position = [294 623 58 22];
             app.PositionLabelEMG.Text = 'Position #';
 
             % Create PositionFieldEMG
-            app.PositionFieldEMG = uieditfield(app.EphyTab, 'numeric');
+            app.PositionFieldEMG = uieditfield(app.EphysTab, 'numeric');
             app.PositionFieldEMG.Editable = 'off';
             app.PositionFieldEMG.BackgroundColor = [0.9412 0.9412 0.9412];
             app.PositionFieldEMG.Position = [353 622 44 22];
 
             % Create NextButton_5
-            app.NextButton_5 = uibutton(app.EphyTab, 'push');
+            app.NextButton_5 = uibutton(app.EphysTab, 'push');
             app.NextButton_5.ButtonPushedFcn = createCallbackFcn(app, @NextButton_5Pushed, true);
             app.NextButton_5.Position = [1116 623 51 22];
             app.NextButton_5.Text = 'Next >>';
 
             % Create PrevButton_5
-            app.PrevButton_5 = uibutton(app.EphyTab, 'push');
+            app.PrevButton_5 = uibutton(app.EphysTab, 'push');
             app.PrevButton_5.ButtonPushedFcn = createCallbackFcn(app, @PrevButton_5Pushed, true);
             app.PrevButton_5.Position = [1061 623 51 22];
             app.PrevButton_5.Text = '<<Prev';
