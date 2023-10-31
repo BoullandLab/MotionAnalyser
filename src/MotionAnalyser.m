@@ -43,10 +43,16 @@ classdef MotionAnalyser < matlab.apps.AppBase
         AlignonZMenu                    matlab.ui.container.Menu
         AlignonXYMenu                   matlab.ui.container.Menu
         AlignonXYZMenu                  matlab.ui.container.Menu
+        ElementsMenu                    matlab.ui.container.Menu
+        MergeMenu                       matlab.ui.container.Menu
+        SplitMenu                       matlab.ui.container.Menu
         InvertMenu                      matlab.ui.container.Menu
-        InvertXMenu_3                   matlab.ui.container.Menu
-        InvertYMenu_3                   matlab.ui.container.Menu
-        InvertZMenu_2                   matlab.ui.container.Menu
+        InvertXdirectionMenu            matlab.ui.container.Menu
+        InvertYdirectionMenu            matlab.ui.container.Menu
+        InvertZdirectionMenu            matlab.ui.container.Menu
+        SwapXandYMenu                   matlab.ui.container.Menu
+        SwapXandZMenu                   matlab.ui.container.Menu
+        SwapYandZMenu                   matlab.ui.container.Menu
         RotateMenu                      matlab.ui.container.Menu
         RotatetheXYplanMenu             matlab.ui.container.Menu
         RotatetheXZplanMenu             matlab.ui.container.Menu
@@ -96,6 +102,17 @@ classdef MotionAnalyser < matlab.apps.AppBase
         XaxisMenu_2                     matlab.ui.container.Menu
         YaxisMenu_2                     matlab.ui.container.Menu
         ZaxisMenu_2                     matlab.ui.container.Menu
+        BackgroundMenu                  matlab.ui.container.Menu
+        WhitedefaultMenu                matlab.ui.container.Menu
+        BlackMenu                       matlab.ui.container.Menu
+        GrayMenu                        matlab.ui.container.Menu
+        BleuMenu                        matlab.ui.container.Menu
+        LightBleuMenu                   matlab.ui.container.Menu
+        GreenMenu                       matlab.ui.container.Menu
+        LightgreenMenu                  matlab.ui.container.Menu
+        OrangeMenu                      matlab.ui.container.Menu
+        LightorangeMenu                 matlab.ui.container.Menu
+        RGBvaluesMenu                   matlab.ui.container.Menu
         StickdiagramMenu_2              matlab.ui.container.Menu
         MarkersMenu_2                   matlab.ui.container.Menu
         ShowMenu_5                      matlab.ui.container.Menu
@@ -163,7 +180,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         Choose_a_POI                    matlab.ui.control.DropDown
         Choose_a_AOI                    matlab.ui.control.DropDown
         AdjustPanel                     matlab.ui.container.Panel
-        CaptureButton                   matlab.ui.control.Button
+        SetfromdisplayButton            matlab.ui.control.Button
         TimeintervalEditField           matlab.ui.control.NumericEditField
         TimeintervalEditFieldLabel      matlab.ui.control.Label
         SetelevationtoEditField         matlab.ui.control.NumericEditField
@@ -409,7 +426,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         idxPOI = ':'; % index of the POI to plot single curves in kinematic, default is all
         NormalisedTo = 1;
         SinglePOI % to select which POI to plot in a single curve
-        SelectedOptionIndex % dialogue menu: variable returned upon selectrion of a POI
+        SelectedOptionIndex % dialogue menu: variable returned upon selectrion of a POI        
         format; % export format
 
         % Variables to plot kinematics
@@ -432,6 +449,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         Mtype = 'o'; % show/hide markers and shape of marker
         zPosition = {}; % Abitrary value for interlimb distance
         SegDens = 1; % defines segment density for stick diagram (number of raws used)
+        backgroundC = [1 1 1]; % defines the color of the plot background
 
         % Variable for gait analyses
         XStep;
@@ -599,14 +617,16 @@ classdef MotionAnalyser < matlab.apps.AppBase
                                 plot3 (app.UIAxes, app.X{app.e(k)}(:,idx), app.Y{app.e(k)}(:,idx), app.Z{app.e(k)}(:,idx));
                             end
                             axis(app.UIAxes, 'equal');
+                            legend (app.UIAxes, app.colname{app.e(k)}(:,idx));                            
                             Axes1_12Settings(app)
 
                         case "Trajectory"
                             for k=1:size(app.e, 2)
                                 plot3 (app.UIAxes, app.X{app.e(k)}, app.Y{app.e(k)}, app.Z{app.e(k)});
                             end
-                            %axis(app.UIAxes, 'equal');
-                            app.UIAxes.DataAspectRatio = [1 1 1];
+                            axis(app.UIAxes, 'equal');
+                            % app.UIAxes.DataAspectRatio = [1 1 1];
+                            legend (app.UIAxes, app.colname{app.e(k)});                            
                             Axes1_12Settings(app)
 
                         case "Stick diagram"
@@ -711,6 +731,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     msgbox('No coordinates available')
                 end
             end
+            app.UIAxes.Color = app.backgroundC;
         end
 
         function SpreadOnY = SpreadOnY(app) %#ok<STOUT>
@@ -812,7 +833,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
                             if isempty(app.e)
                                 % do nothing, do not change the table
-                            else
+                            elseif numel (app.e) == 1
                                 scroll(app.UITable1,'row', app.n29)
                                 removeStyle(app.UITable1)
                                 s= uistyle("BackgroundColor",[0.8 0.7 0.8]);
@@ -976,7 +997,6 @@ classdef MotionAnalyser < matlab.apps.AppBase
                         app.y2 = app.y2(~isnan(app.y2));
                     case 'No'
                 end
-
             end
         end
 
@@ -984,27 +1004,51 @@ classdef MotionAnalyser < matlab.apps.AppBase
         function results = AnalyseKinematic(app) %#ok<STOUT>
             if numel(app.X) >=1 % if there data in app.X
                 if isempty(app.AbsoluteValue) || isempty(app.AngleUnit) % if a choice was NOT previously made
-                    prompt = {'Use absolute values for speed and acceleration (y/n)','Angle unit in Degrees or Radians (D/R)'};
-                    dlgtitle = 'Calculation settings';
-                    dims = [1 45];
-                    definput = {'y','D'};
-                    answer = inputdlg(prompt,dlgtitle,dims,definput);
+                    % Define the options for the dropdown menu
+                    options1 = {'Degrees', 'Radians'};
+                    options2 = {'Yes', 'No'};
 
-                    if isempty(answer)
-                        app.AbsoluteValue = "Yes";
-                        app.AngleUnit = 'Degrees';
-                    else
-                        if char(answer(1)) == 'n'
-                            app.AbsoluteValue = "No";
-                        else
-                            app.AbsoluteValue = "Yes";
-                        end
+                    screensize = get(groot, 'Screensize');
 
-                        if char(answer(2)) == 'R'
-                            app.AngleUnit = 'Radians';
-                        else
+                    % Define the position and size of the dialog box
+                    width = 250;
+                    height = 150;
+                    left = screensize(3)/2 - width/2;
+                    bottom = screensize(4)/2 - height/2;
+                    position = [left, bottom, width, height];
+
+                    % Create a dialog box with a dropdown menu
+                    dlg = dialog('Name', 'Select', 'Position', position);
+                    uicontrol(dlg, 'Style', 'text', 'String', 'Select the angle unit', 'Position', [-70, 120, 250, 25]);
+                    uicontrol(dlg, 'Style', 'text', 'String', 'Use absolute values for speed and acceleration?', 'Position', [1, 70, 250, 25]);
+                    Dropdown1 = uicontrol(dlg, 'Style', 'popupmenu', 'String', options1, 'Position', [30, 100, 120, 25]);
+                    Dropdown2 = uicontrol(dlg, 'Style', 'popupmenu', 'String', options2, 'Position', [30, 50, 120, 25]);
+
+                    % Add a push button to the dialog box
+                    uicontrol(dlg, 'Style', 'pushbutton', 'String', 'OK', 'Position', [80, 10, 100, 25], 'Callback', 'uiresume(gcbf)');
+
+                    % Wait for the user to close the dialog box
+                    uiwait(dlg);
+
+                    % Get the index of the selected option from the dropdown menu
+                    app.SelectedOptionIndex = [];
+                    answer1 = get(Dropdown1, 'Value');
+                    answer2  = get(Dropdown2, 'Value');
+                    %app.SelectedOptionIndex = [a,b];                   
+
+                    % Close the dialog box
+                    delete(dlg);
+
+                    if answer1 == 1
                             app.AngleUnit = 'Degrees';
-                        end
+                        else
+                            app.AngleUnit = 'Radians';
+                    end
+
+                    if answer2 == 1
+                            app.AbsoluteValue = "Yes";
+                        else
+                            app.AbsoluteValue = "No";
                     end
                 else
                 end
@@ -1013,355 +1057,279 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 [~, idx] = ismember(app.ElementDropDown.Value, app.ElementName);
                 app.e = idx;
 
-
                 % calculate the kinematic values
                 % waitbar
                 wb = waitbar(0.2,'Please wait...');
                 waitbar(.2,wb,'Analysing Trajectory');
 
-                % Trajectory
+                %% Trajectory
                 % Euclidean distance
                 if  app.AbsoluteValue == "Yes"
-                    dx = abs(diff(app.X{app.e}));
-                    dy = abs(diff(app.Y{app.e}));
-                    dz = abs(diff(app.Z{app.e}));
+                    app.dX{app.e} = abs(diff(app.X{app.e}));
+                    app.dY{app.e} = abs(diff(app.Y{app.e}));
+                    app.dZ{app.e} = abs(diff(app.Z{app.e}));
                 elseif app.AbsoluteValue == "No"
-                    dx = diff(app.X{app.e});
-                    dy= diff(app.Y{app.e});
-                    dz= diff(app.Z{app.e});
+                    app.dX{app.e} = diff(app.X{app.e});
+                    app.dY{app.e} = diff(app.Y{app.e});
+                    app.dZ{app.e} = diff(app.Z{app.e});
                 end
-                dxy = sqrt(dx.^2 + dy.^2); % calculates dxy
+                app.dXY{app.e} = sqrt(app.dX{app.e}.^2 + app.dY{app.e}.^2); % calculates dxy
 
                 if app.Arb_Z == 1
-                    dz = NaN(size(dz));
-                    dxz = NaN(size(dx));
-                    dyz = NaN(size(dx));
-                    dxyz = NaN(size(dx));
+                    % if the Z is arbitrary create arrays of NaN
+                    app.dZ{app.e} = NaN(size(app.dX{app.e}));
+                    app.dXZ{app.e} = NaN(size(app.dX{app.e}));
+                    app.dYZ{app.e} = NaN(size(app.dX{app.e}));
+                    app.dXYZ{app.e} = NaN(size(app.dX{app.e}));                    
                 else
-                    dxz = sqrt(dx.^2 + dz.^2); % calculates dxz
-                    dyz = sqrt(dy.^2 + dz.^2); % calculates dyz
-                    dxyz = sqrt(dx.^2 + dy.^2 + dz.^2);
-                end
-
-                app.dX{app.e} = dx; % copy in cell array
-                app.dY{app.e} = dy;
-                app.dZ{app.e} = dz;
-                app.dXY{app.e} = dxy;
-                app.dXZ{app.e} = dxz;
-                app.dYZ{app.e} = dyz;
-                app.dXYZ{app.e} = dxyz;
+                    % if Z is real, calculate the other distances
+                    app.dXZ{app.e} = sqrt(app.dX{app.e}.^2 + app.dZ{app.e}.^2); % calculates dxz
+                    app.dYZ{app.e} = sqrt(app.dY{app.e}.^2 + app.dZ{app.e}.^2); % calculates dyz
+                    app.dXYZ{app.e} = sqrt(app.dX{app.e}.^2 + app.dY{app.e}.^2 + app.dZ{app.e}.^2);
+                end                
 
                 % Calculate descriptive statistics for the distance and copy
-                % them in a single cell array of {app.e,15}
+                % them in a single cell array of {app.e,n}
+                dx = rmmissing(app.dX{app.e}); % remove NaN so that satistics can be calculated
                 app.DistanceStat {app.e,1} = min(dx);
-                app.DistanceStat {app.e,2} = max(dx);
+                app.DistanceStat {app.e,2} = max(dx);                
                 app.DistanceStat {app.e,3} = mean(dx);
                 app.DistanceStat {app.e,4} = median(dx);
                 app.DistanceStat {app.e,5} = sum(dx);
 
+                dy = rmmissing(app.dY{app.e});
                 app.DistanceStat {app.e,6} = min(dy);
                 app.DistanceStat {app.e,7} = max(dy);
                 app.DistanceStat {app.e,8} = mean(dy);
                 app.DistanceStat {app.e,9} = median(dy);
                 app.DistanceStat {app.e,10} = sum(dy);
 
-                app.DistanceStat {app.e,11} = min(dz);
-                app.DistanceStat {app.e,12} = max(dz);
-                app.DistanceStat {app.e,13} = mean(dz);
-                app.DistanceStat {app.e,14} = median(dz);
-                app.DistanceStat {app.e,15} = sum(dz);
-
+                dxy = rmmissing(app.dXY{app.e});
                 app.DistanceStat {app.e,16} = min(dxy);
                 app.DistanceStat {app.e,17} = max(dxy);
                 app.DistanceStat {app.e,18} = mean(dxy);
                 app.DistanceStat {app.e,19} = median(dxy);
                 app.DistanceStat {app.e,20} = sum(dxy);
 
-                app.DistanceStat {app.e,21} = min(dxz);
-                app.DistanceStat {app.e,22} = max(dxz);
-                app.DistanceStat {app.e,23} = mean(dxz);
-                app.DistanceStat {app.e,24} = median(dxz);
-                app.DistanceStat {app.e,25} = sum(dxz);
+                if app.Arb_Z == 0 % if the Z matrix has real values
+                    dz = rmmissing(app.dZ{app.e});
+                    app.DistanceStat {app.e,11} = min(dz);
+                    app.DistanceStat {app.e,12} = max(dz);
+                    app.DistanceStat {app.e,13} = mean(dz);
+                    app.DistanceStat {app.e,14} = median(dz);
+                    app.DistanceStat {app.e,15} = sum(dz);
 
-                app.DistanceStat {app.e,26} = min(dyz);
-                app.DistanceStat {app.e,27} = max(dyz);
-                app.DistanceStat {app.e,28} = mean(dyz);
-                app.DistanceStat {app.e,29} = median(dyz);
-                app.DistanceStat {app.e,30} = sum(dyz);
+                    dxz = rmmissing(app.dXZ{app.e});
+                    app.DistanceStat {app.e,21} = min(dxz);
+                    app.DistanceStat {app.e,22} = max(dxz);
+                    app.DistanceStat {app.e,23} = mean(dxz);
+                    app.DistanceStat {app.e,24} = median(dxz);
+                    app.DistanceStat {app.e,25} = sum(dxz);
 
-                app.DistanceStat {app.e,31} = min(dxyz);
-                app.DistanceStat {app.e,32} = max(dxyz);
-                app.DistanceStat {app.e,33} = mean(dxyz);
-                app.DistanceStat {app.e,34} = median(dxyz);
-                app.DistanceStat {app.e,35} = sum(dxyz);
+                    dyz = rmmissing(app.dYZ{app.e});
+                    app.DistanceStat {app.e,26} = min(dyz);
+                    app.DistanceStat {app.e,27} = max(dyz);
+                    app.DistanceStat {app.e,28} = mean(dyz);
+                    app.DistanceStat {app.e,29} = median(dyz);
+                    app.DistanceStat {app.e,30} = sum(dyz);
 
+                    dxyz = rmmissing(app.dXYZ{app.e});
+                    app.DistanceStat {app.e,31} = min(dxyz);
+                    app.DistanceStat {app.e,32} = max(dxyz);
+                    app.DistanceStat {app.e,33} = mean(dxyz);
+                    app.DistanceStat {app.e,34} = median(dxyz);
+                    app.DistanceStat {app.e,35} = sum(dxyz);  
+                else
+                    % fill the cell arrays with NaN so that there is no
+                    % problem when quering the data in the stat tab
+                    a = NaN(size(max(app.dX{app.e})));
+                    for i = 11:15
+                        app.DistanceStat{app.e, i} = a;
+                    end
+
+                    for i = 21:35
+                        app.DistanceStat{app.e, i} = a;
+                    end 
+                end
                 %% Speed
 
                 waitbar(0.4,wb,'Calculating speed');
 
                 dt = diff(app.T{app.e});
                 if app.AbsoluteValue == "Yes"
-                    vx = abs(dx./dt);
-                    vy = abs(dy./dt);
-                    vz = abs(dz./dt);
-                    vxy = abs(dxy./dt);
-                    vxz = abs(dxz./dt);
-                    vyz = abs(dyz./dt);
-                    vxyz = abs(dxyz./dt);
+                    app.VX{app.e} = abs(app.dX{app.e}./dt);
+                    app.VY{app.e} = abs(app.dY{app.e}./dt);
+                    app.VZ{app.e} = abs(app.dZ{app.e}./dt);
+                    app.VXY{app.e} = abs(app.dXY{app.e}./dt);
+                    app.VXZ{app.e} = abs(app.dXZ{app.e}./dt);
+                    app.VYZ{app.e} = abs(app.dYZ{app.e}./dt);
+                    app.VXYZ{app.e}= abs(app.dXYZ{app.e}./dt);
                 elseif app.AbsoluteValue == "No"
-                    vx = (dx./dt);
-                    vy = (dy./dt);
-                    vz = (dz./dt);
-                    vxy = (dxy./dt);
-                    vxz = (dxz./dt);
-                    vyz = (dyz./dt);
-                    vxyz = (dxyz./dt);
-                end
-
-                a = rmmissing(vx); % remove NaN for calculation
-                app.VX{app.e} = a; % copy in the array VX
-                b = rmmissing(vy);
-                app.VY{app.e} = b;
-                d = rmmissing(vxy); % remove NaN for calculation
-                app.VXY{app.e} = d;
-
-                if app.Arb_Z == 0 % if the Z matrix is real
-                    c = rmmissing(vz); % remove NaN for calculation
-                    app.VZ{app.e} = c;
-                    f = rmmissing(vxz); % remove NaN for calculation
-                    app.VXZ{app.e} = f;
-                    g = rmmissing(vyz); % remove NaN for calculation
-                    app.VYZ{app.e} = g;
-                    h = rmmissing(vxyz); % remove NaN for calculation
-                    app.VXYZ{app.e} = h;
-                else
-                    app.VZ{app.e} = NaN(size(app.VX{app.e}));
-                    app.VXZ{app.e} = NaN(size(app.VX{app.e}));
-                    app.VYZ{app.e} = NaN(size(app.VX{app.e}));
-                    app.VXYZ{app.e} = NaN(size(app.VX{app.e}));
-                end
+                    app.VX{app.e} = app.dX{app.e}./dt;
+                    app.VY{app.e} = app.dY{app.e}./dt;
+                    app.VZ{app.e} = app.dZ{app.e}./dt;
+                    app.VXY{app.e} = app.dXY{app.e}./dt;
+                    app.VXZ{app.e} = app.dXZ{app.e}./dt;
+                    app.VYZ{app.e} = app.dYZ{app.e}./dt;
+                    app.VXYZ{app.e}= app.dXYZ{app.e}./dt;
+                end                                
 
                 % stats on vx
-                app.VelocityStat {app.e,1} = min(a);
-                app.VelocityStat {app.e,2} = max(a);
-                app.VelocityStat {app.e,3} = mean(a);
-                app.VelocityStat {app.e,4} = median(a);
-                app.VelocityStat {app.e,5} = mode(nearest(a));
+                vx = rmmissing(app.VX{app.e});
+                app.VelocityStat {app.e,1} = min(vx);
+                app.VelocityStat {app.e,2} = max(vx);
+                app.VelocityStat {app.e,3} = mean(vx);
+                app.VelocityStat {app.e,4} = median(vx);
+                app.VelocityStat {app.e,5} = mode(nearest(vx));
 
                 % stats on vy
-                app.VelocityStat {app.e,6} = min(b);
-                app.VelocityStat {app.e,7} = max(b);
-                app.VelocityStat {app.e,8} = mean(b);
-                app.VelocityStat {app.e,9} = median(b);
-                app.VelocityStat {app.e,10} = mode(nearest(b));
+                vy = rmmissing(app.VY{app.e});
+                app.VelocityStat {app.e,6} = min(vy);
+                app.VelocityStat {app.e,7} = max(vy);
+                app.VelocityStat {app.e,8} = mean(vy);
+                app.VelocityStat {app.e,9} = median(vy);
+                app.VelocityStat {app.e,10} = mode(nearest(vy));
 
                 % stats on vxy
-                app.VelocityStat {app.e,16} = min(d);
-                app.VelocityStat {app.e,17} = max(d);
-                app.VelocityStat {app.e,18} = mean(d);
-                app.VelocityStat {app.e,19} = median(d);
-                app.VelocityStat {app.e,20} = mode(nearest(d));
+                vxy = rmmissing(app.VXY{app.e});
+                app.VelocityStat {app.e,16} = min(vxy);
+                app.VelocityStat {app.e,17} = max(vxy);
+                app.VelocityStat {app.e,18} = mean(vxy);
+                app.VelocityStat {app.e,19} = median(vxy);
+                app.VelocityStat {app.e,20} = mode(nearest(vxy));
 
                 if app.Arb_Z == 0 % if the Z matrix is real
                     % stats on vz
-                    app.VelocityStat {app.e,11} = min(c);
-                    app.VelocityStat {app.e,12} = max(c);
-                    app.VelocityStat {app.e,13} = mean(c);
-                    app.VelocityStat {app.e,14} = median(c);
-                    app.VelocityStat {app.e,15} = mode(nearest(c));
+                    vz = rmmissing(app.VZ{app.e});
+                    app.VelocityStat {app.e,11} = min(vz);
+                    app.VelocityStat {app.e,12} = max(vz);
+                    app.VelocityStat {app.e,13} = mean(vz);
+                    app.VelocityStat {app.e,14} = median(vz);
+                    app.VelocityStat {app.e,15} = mode(nearest(vz));
 
                     % stats on vxz
-                    app.VelocityStat {app.e,21} = min(f);
-                    app.VelocityStat {app.e,22} = max(f);
-                    app.VelocityStat {app.e,23} = mean(f);
-                    app.VelocityStat {app.e,24} = median(f);
-                    app.VelocityStat {app.e,25} = mode(nearest(f));
+                    vxz = rmmissing(app.VXZ{app.e});
+                    app.VelocityStat {app.e,21} = min(vxz);
+                    app.VelocityStat {app.e,22} = max(vxz);
+                    app.VelocityStat {app.e,23} = mean(vxz);
+                    app.VelocityStat {app.e,24} = median(vxz);
+                    app.VelocityStat {app.e,25} = mode(nearest(vxz));
 
                     % stats on vyz
-                    app.VelocityStat {app.e,26} = min(g);
-                    app.VelocityStat {app.e,27} = max(g);
-                    app.VelocityStat {app.e,28} = mean(g);
-                    app.VelocityStat {app.e,29} = median(g);
-                    app.VelocityStat {app.e,30} = mode(nearest(g));
+                    vyz = rmmissing(app.VYZ{app.e});
+                    app.VelocityStat {app.e,26} = min(vyz);
+                    app.VelocityStat {app.e,27} = max(vyz);
+                    app.VelocityStat {app.e,28} = mean(vyz);
+                    app.VelocityStat {app.e,29} = median(vyz);
+                    app.VelocityStat {app.e,30} = mode(nearest(vyz));
 
                     % stats on vxyz
-                    app.VelocityStat {app.e,31} = min(h);
-                    app.VelocityStat {app.e,32} = max(h);
-                    app.VelocityStat {app.e,33} = mean(h);
-                    app.VelocityStat {app.e,34} = median(h);
-                    app.VelocityStat {app.e,35} = mode(nearest(h));
-                    clear a b c d f g h;
+                    vxyz = rmmissing(app.VXYZ{app.e});
+                    app.VelocityStat {app.e,31} = min(vxyz);
+                    app.VelocityStat {app.e,32} = max(vxyz);
+                    app.VelocityStat {app.e,33} = mean(vxyz);
+                    app.VelocityStat {app.e,34} = median(vxyz);
+                    app.VelocityStat {app.e,35} = mode(nearest(vxyz));
                 else
-                    %create NaN matrixes
-                    J = NaN(size(max(a)));
-                    % stats on vz
-                    app.VelocityStat {app.e,11} = J;
-                    app.VelocityStat {app.e,12} = J;
-                    app.VelocityStat {app.e,13} = J;
-                    app.VelocityStat {app.e,14} = J;
-                    app.VelocityStat {app.e,15} = J;
+                    % fill the cell arrays with NaN so that there is no
+                    % problem when quering the data in the stat tab
+                    a = NaN(size(max(app.VX{app.e})));
+                    for i = 11:15
+                        app.VelocityStat{app.e, i} = a;
+                    end
 
-                    % stats on vxz
-                    app.VelocityStat {app.e,21} = J;
-                    app.VelocityStat {app.e,22} = J;
-                    app.VelocityStat {app.e,23} = J;
-                    app.VelocityStat {app.e,24} = J;
-                    app.VelocityStat {app.e,25} = J;
-
-                    % stats on vyz
-                    app.VelocityStat {app.e,26} = J;
-                    app.VelocityStat {app.e,27} = J;
-                    app.VelocityStat {app.e,28} = J;
-                    app.VelocityStat {app.e,29} = J;
-                    app.VelocityStat {app.e,30} = J;
-
-                    % stats on vxyz
-                    app.VelocityStat {app.e,31} = J;
-                    app.VelocityStat {app.e,32} = J;
-                    app.VelocityStat {app.e,33} = J;
-                    app.VelocityStat {app.e,34} = J;
-                    app.VelocityStat {app.e,35} = J;
-                    clear a b c d f g h;
+                    for i = 21:35
+                        app.VelocityStat{app.e, i} = a;
+                    end 
                 end
-
-                %% Acceleration
+                %% Acceleration                
                 if app.AbsoluteValue == "Yes"
-                    dvx = abs(diff(vx));
-                    dvy = abs(diff(vy));
-                    dvz = abs(diff(vz));
-                    dvxy = abs(diff(vxy));
-                    dvxz = abs(diff(vxz));
-                    dvyz = abs((diff(vyz)));
-                    dvxyz = abs(diff(vxyz));
+                    app.AX{app.e} = abs(diff(app.VX{app.e})./dt(2:end,:));
+                    app.AY{app.e} = abs(diff(app.VY{app.e})./dt(2:end,:));
+                    app.AZ{app.e} = abs(diff(app.VZ{app.e})./dt(2:end,:));
+                    app.AXY{app.e} = abs(diff(app.VXY{app.e})./dt(2:end,:));
+                    app.AXZ{app.e} = abs(diff(app.VXZ{app.e})./dt(2:end,:));
+                    app.AYZ{app.e} = abs(diff(app.VYZ{app.e})./dt(2:end,:));
+                    app.AXYZ{app.e}= abs(diff(app.VXYZ{app.e})./dt(2:end,:));
                 elseif app.AbsoluteValue == "No"
-                    dvx = diff(vx);
-                    dvy = diff(vy);
-                    dvz = diff(vz);
-                    dvxy = diff(vxy);
-                    dvxz = diff(vxz);
-                    dvyz = diff(vyz);
-                    dvxyz = diff(vxyz);
-                end
-
-                a = dvx./dt(2,:);
-                a = rmmissing (a); % remove NaN for calculation
-                app.AX{app.e} = a; % copy in the array AX
-
-                b = dvy./dt(2,:);
-                b = rmmissing (b);
-                app.AY{app.e} = b;
-
-                d = dvxy./dt(2,:);
-                d = rmmissing (d);
-                app.AXY{app.e} = d;
-
-                if app.Arb_Z == 0 % if the Z matrix is real
-                    c = dvz./dt(2,:);
-                    c = rmmissing (c);
-                    app.AZ{app.e} = c;
-
-                    f = dvxz./dt(2,:);
-                    f = rmmissing (f);
-                    app.AXZ{app.e} = f;
-
-                    g = dvyz./dt(2,:);
-                    g = rmmissing (g);
-                    app.AYZ{app.e} = g;
-
-                    h = dvxyz./dt(2,:);
-                    h = rmmissing (h);
-                    app.AXYZ{app.e} = h;
-                else
-                    app.AZ{app.e} = NaN(size(app.AX{app.e}));
-                    app.AXZ{app.e} = NaN(size(app.AX{app.e}));
-                    app.AYZ{app.e} = NaN(size(app.AX{app.e}));
-                    app.AXYZ{app.e} = NaN(size(app.AX{app.e}));
-                end
+                    app.AX{app.e} = diff(app.VX{app.e})./dt(2:end,:);
+                    app.AY{app.e} = diff(app.VY{app.e})./dt(2:end,:);
+                    app.AZ{app.e} = diff(app.VZ{app.e})./dt(2:end,:);
+                    app.AXY{app.e} = diff(app.VXY{app.e})./dt(2:end,:);
+                    app.AXZ{app.e} = diff(app.VXZ{app.e})./dt(2:end,:);
+                    app.AYZ{app.e} = diff(app.VYZ{app.e})./dt(2:end,:);
+                    app.AXYZ{app.e}= diff(app.VXYZ{app.e})./dt(2:end,:);
+                end    
 
                 % stats on AX
-                app.AccelerationStat {app.e,1} = min(a);
-                app.AccelerationStat {app.e,2} = max(a);
-                app.AccelerationStat {app.e,3} = mean(a);
-                app.AccelerationStat {app.e,4} = median(a);
-                app.AccelerationStat {app.e,5} = mode(nearest(a));
+                ax = rmmissing(app.AX{app.e});                
+                app.AccelerationStat {app.e,1} = min(ax);
+                app.AccelerationStat {app.e,2} = max(ax);
+                app.AccelerationStat {app.e,3} = mean(ax);
+                app.AccelerationStat {app.e,4} = median(ax);
+                app.AccelerationStat {app.e,5} = mode(nearest(ax));
 
                 % stats on AY
-                app.AccelerationStat {app.e,6} = min(b);
-                app.AccelerationStat {app.e,7} = max(b);
-                app.AccelerationStat {app.e,8} = mean(b);
-                app.AccelerationStat {app.e,9} = median(b);
-                app.AccelerationStat {app.e,10} = mode(nearest(b));
+                ay = rmmissing(app.AY{app.e}); 
+                app.AccelerationStat {app.e,6} = min(ay);
+                app.AccelerationStat {app.e,7} = max(ay);
+                app.AccelerationStat {app.e,8} = mean(ay);
+                app.AccelerationStat {app.e,9} = median(ay);
+                app.AccelerationStat {app.e,10} = mode(nearest(ay));
 
                 % stats on AXY
-                app.AccelerationStat {app.e,16} = min(d);
-                app.AccelerationStat {app.e,17} = max(d);
-                app.AccelerationStat {app.e,18} = mean(d);
-                app.AccelerationStat {app.e,19} = median(d);
-                app.AccelerationStat {app.e,20} = mode(nearest(d));
+                axy = rmmissing(app.AXY{app.e}); 
+                app.AccelerationStat {app.e,16} = min(axy);
+                app.AccelerationStat {app.e,17} = max(axy);
+                app.AccelerationStat {app.e,18} = mean(axy);
+                app.AccelerationStat {app.e,19} = median(axy);
+                app.AccelerationStat {app.e,20} = mode(nearest(axy));
 
-                if app.Arb_Z == 0 % if the Z matrix is real
-                    % stats on vz
+                if app.Arb_Z == 0 % if the Z matrix is real                    
 
                     % stats on AZ
-                    app.AccelerationStat {app.e,11} = min(c);
-                    app.AccelerationStat {app.e,12} = max(c);
-                    app.AccelerationStat {app.e,13} = mean(c);
-                    app.AccelerationStat {app.e,14} = median(c);
-                    app.AccelerationStat {app.e,15} = mode(nearest(c));
+                    az = rmmissing(app.AZ{app.e});
+                    app.AccelerationStat {app.e,11} = min(az);
+                    app.AccelerationStat {app.e,12} = max(az);
+                    app.AccelerationStat {app.e,13} = mean(az);
+                    app.AccelerationStat {app.e,14} = median(az);
+                    app.AccelerationStat {app.e,15} = mode(nearest(az));
 
                     % stats on AXZ
-                    app.AccelerationStat {app.e,21} = min(f);
-                    app.AccelerationStat {app.e,22} = max(f);
-                    app.AccelerationStat {app.e,23} = mean(f);
-                    app.AccelerationStat {app.e,24} = median(f);
-                    app.AccelerationStat {app.e,25} = mode(nearest(f));
+                    axz = rmmissing(app.AXZ{app.e});
+                    app.AccelerationStat {app.e,21} = min(axz);
+                    app.AccelerationStat {app.e,22} = max(axz);
+                    app.AccelerationStat {app.e,23} = mean(axz);
+                    app.AccelerationStat {app.e,24} = median(axz);
+                    app.AccelerationStat {app.e,25} = mode(nearest(axz));
 
                     % stats on AYZ
-                    app.AccelerationStat {app.e,26} = min(g);
-                    app.AccelerationStat {app.e,27} = max(g);
-                    app.AccelerationStat {app.e,28} = mean(g);
-                    app.AccelerationStat {app.e,29} = median(g);
-                    app.AccelerationStat {app.e,30} = mode(nearest(g));
+                    ayz = rmmissing(app.AYZ{app.e});
+                    app.AccelerationStat {app.e,26} = min(ayz);
+                    app.AccelerationStat {app.e,27} = max(ayz);
+                    app.AccelerationStat {app.e,28} = mean(ayz);
+                    app.AccelerationStat {app.e,29} = median(ayz);
+                    app.AccelerationStat {app.e,30} = mode(nearest(ayz));
 
                     % stats on AXYZ
-                    app.AccelerationStat {app.e,31} = min(h);
-                    app.AccelerationStat {app.e,32} = max(h);
-                    app.AccelerationStat {app.e,33} = mean(h);
-                    app.AccelerationStat {app.e,34} = median(h);
-                    app.AccelerationStat {app.e,35} = mode(nearest(h));
-                    clear a b c d f g h;
-
+                    axyz = rmmissing(app.AXYZ{app.e});
+                    app.AccelerationStat {app.e,31} = min(axyz);
+                    app.AccelerationStat {app.e,32} = max(axyz);
+                    app.AccelerationStat {app.e,33} = mean(axyz);
+                    app.AccelerationStat {app.e,34} = median(axyz);
+                    app.AccelerationStat {app.e,35} = mode(nearest(axyz));
+                    
                 else
-                    %create NaN matrixes
-                    J = NaN(size(max(a)));
-                    % stats on vz
-                    app.AccelerationStat {app.e,11} = J;
-                    app.AccelerationStat {app.e,12} = J;
-                    app.AccelerationStat {app.e,13} = J;
-                    app.AccelerationStat {app.e,14} = J;
-                    app.AccelerationStat {app.e,15} = J;
+                    % fill the cell arrays with NaN so that there is no
+                    % problem when quering the data in the stat tab
+                    a = NaN(size(max(app.AX{app.e}))); % must be X as it exist for sure
+                    for i = 11:15
+                        app.AccelerationStat{app.e, i} = a;
+                    end
 
-                    % stats on vxz
-                    app.AccelerationStat {app.e,21} = J;
-                    app.AccelerationStat {app.e,22} = J;
-                    app.AccelerationStat {app.e,23} = J;
-                    app.AccelerationStat {app.e,24} = J;
-                    app.AccelerationStat {app.e,25} = J;
-
-                    % stats on vyz
-                    app.AccelerationStat {app.e,26} = J;
-                    app.AccelerationStat {app.e,27} = J;
-                    app.AccelerationStat {app.e,28} = J;
-                    app.AccelerationStat {app.e,29} = J;
-                    app.AccelerationStat {app.e,30} = J;
-
-                    % stats on vxyz
-                    app.AccelerationStat {app.e,31} = J;
-                    app.AccelerationStat {app.e,32} = J;
-                    app.AccelerationStat {app.e,33} = J;
-                    app.AccelerationStat {app.e,34} = J;
-                    app.AccelerationStat {app.e,35} = J;
-                    clear a b c d f g h;
+                    for i = 21:35
+                        app.AccelerationStat{app.e, i} = a;  
+                    end  
                 end
 
                 waitbar(0.5,wb,'Calculating angle');
@@ -1381,7 +1349,6 @@ classdef MotionAnalyser < matlab.apps.AppBase
                             Tb_angle.(k) = abc;
                             app.AnglesXY{app.e} = table2array (Tb_angle); % convert table to array for ploting;
                         end
-
                     elseif app.AngleUnit == "Radians"
                         for k = 1:lim
                             ab = sqrt(((app.X{app.e}(:,k)-app.X{app.e}(:,1+k)).^2)+((app.Y{app.e}(:,k)-app.Y{app.e}(:,1+k)).^2));
@@ -1394,14 +1361,14 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     end
 
                     % Descriptive statistics for angles on XY plan
-                    app.AngleStat {app.e,1} = min(app.AnglesXY{app.e});
-                    app.AngleStat {app.e,2} = max(app.AnglesXY{app.e});
-                    app.AngleStat {app.e,3} = mean(app.AnglesXY{app.e});
-                    app.AngleStat {app.e,4} = median(app.AnglesXY{app.e});
-                    app.AngleStat {app.e,5} = mode(nearest(app.AnglesXY{app.e}));
+                    ang_xy = rmmissing(app.AnglesXY{app.e});
+                    app.AngleStat{app.e,1} = min(ang_xy);
+                    app.AngleStat{app.e,2} = max(ang_xy);
+                    app.AngleStat{app.e,3} = mean(ang_xy);
+                    app.AngleStat{app.e,4} = median(ang_xy);
+                    app.AngleStat{app.e,5} = mode(nearest(ang_xy));
 
                     %% Angles on XZ plan
-
                     if app.Arb_Z == 0 % if the Z matrix is real
 
                         % Calulate angles with a for loop outputed in a table and converted to an array for plotting
@@ -1430,21 +1397,20 @@ classdef MotionAnalyser < matlab.apps.AppBase
                         end
 
                         % Descriptive statistics for angles on XZ plan
-                        app.AngleStat {app.e,6} = min(app.AnglesXZ{app.e});
-                        app.AngleStat {app.e,7} = max(app.AnglesXZ{app.e});
-                        app.AngleStat {app.e,8} = mean(app.AnglesXZ{app.e});
-                        app.AngleStat {app.e,9} = median(app.AnglesXZ{app.e});
-                        app.AngleStat {app.e,10} = mode(nearest(app.AnglesXZ{app.e}));
-
+                        ang_xz = rmmissing(app.AnglesXZ{app.e});
+                        app.AngleStat{app.e,6} = min(ang_xz);
+                        app.AngleStat{app.e,7} = max(ang_xz);
+                        app.AngleStat{app.e,8} = mean(ang_xz);
+                        app.AngleStat{app.e,9} = median(ang_xz);
+                        app.AngleStat{app.e,10} = mode(nearest(ang_xz));
                     else
-                        app.AnglesXZ{app.e} = NaN(size(app.AnglesXY{app.e}));
-                        app.AngleStat {app.e,6} = NaN;
-                        app.AngleStat {app.e,7} = NaN;
-                        app.AngleStat {app.e,8} = NaN;
-                        app.AngleStat {app.e,9} = NaN;
-                        app.AngleStat {app.e,10} = NaN;
+                        % fill the cell arrays with NaN so that there is no
+                        % problem when quering the data in the stat tab
+                        a = NaN(size(max(app.AnglesXY{app.e}))); % onlyXY exits must be xy
+                        for i = 6:10
+                            app.AccelerationStat{app.e, i} = a;
+                        end
                     end
-
                     %% Angles on YZ plan
                     if app.Arb_Z == 0 % if the Z matrix is real
 
@@ -1473,134 +1439,124 @@ classdef MotionAnalyser < matlab.apps.AppBase
                             end
                         end
 
-                        % Descriptive statistics for angles on YZ plan
-                        app.AngleStat {app.e,11} = min(app.AnglesYZ{app.e});
-                        app.AngleStat {app.e,12} = max(app.AnglesYZ{app.e});
-                        app.AngleStat {app.e,13} = mean(app.AnglesYZ{app.e});
-                        app.AngleStat {app.e,14} = median(app.AnglesYZ{app.e});
-                        app.AngleStat {app.e,15} = mode(nearest(app.AnglesYZ{app.e}));
-
+                        % Descriptive statistics for angles on XZ plan
+                        ang_yz = rmmissing(app.AnglesYZ{app.e});
+                        app.AngleStat{app.e,11} = min(ang_yz);
+                        app.AngleStat{app.e,12} = max(ang_yz);
+                        app.AngleStat{app.e,13} = mean(ang_yz);
+                        app.AngleStat{app.e,14} = median(ang_yz);
+                        app.AngleStat{app.e,15} = mode(nearest(ang_yz));
                     else
-                        app.AnglesYZ{app.e} = NaN(size(app.AnglesXY{app.e}));
-                        app.AngleStat {app.e,11} = NaN;
-                        app.AngleStat {app.e,12} = NaN;
-                        app.AngleStat {app.e,13} = NaN;
-                        app.AngleStat {app.e,14} = NaN;
-                        app.AngleStat {app.e,15} = NaN;
+                        % fill the cell arrays with NaN so that there is no
+                        % problem when quering the data in the stat tab
+                        a = NaN(size(max(app.AnglesXY{app.e}))); % Only XY exists, must be XY
+                        for i = 11:15
+                            app.AccelerationStat{app.e, i} = a;
+                        end
                     end
 
-
-                    % Angular velocity ω
-                    %% angular velocity on XY plan
-                    waitbar(.8,wb,'Calculating anglular velocity');
-                    dO = abs(diff(app.AnglesXY{app.e}));
-                    app.AngVeloc_XY{app.e} = dO./dt;
-                    clear dO;
-
-                    app.AngVelocStat {app.e,1} = min(app.AngVeloc_XY{app.e});
-                    app.AngVelocStat {app.e,2} = max(app.AngVeloc_XY{app.e});
-                    app.AngVelocStat {app.e,3} = mean(app.AngVeloc_XY{app.e});
-                    app.AngVelocStat {app.e,4} = median(app.AngVeloc_XY{app.e});
-                    app.AngVelocStat {app.e,5} = mode(nearest(app.AngVeloc_XY{app.e}));
-
-                    %% angular velocity on XZ plan
-
-                    if app.Arb_Z == 0 % if the Z matrix is real
-                        dO = abs(diff(app.AnglesXZ{app.e}));
-                        app.AngVeloc_XZ{app.e} = dO./dt;
-                        clear dO;
-
-                        app.AngVelocStat {app.e,6} = min(app.AngVeloc_XZ{app.e});
-                        app.AngVelocStat {app.e,7} = max(app.AngVeloc_XZ{app.e});
-                        app.AngVelocStat {app.e,8} = mean(app.AngVeloc_XZ{app.e});
-                        app.AngVelocStat {app.e,9} = median(app.AngVeloc_XZ{app.e});
-                        app.AngVelocStat {app.e,10} = mode(nearest(app.AngVeloc_XZ{app.e}));
-
+                    %% Angular velocity
+                    % Calculate angle velocity
+                    if app.AbsoluteValue == "Yes"
+                        app.AngVeloc_XY{app.e} = abs(diff(app.AnglesXY{app.e}))./dt; % for XY
+                        if app.Arb_Z == 0 % if the Z matrix is real
+                            app.AngVeloc_XZ{app.e} = abs(diff(app.AnglesXZ{app.e}))./dt; % For XZ
+                            app.AngVeloc_YZ{app.e} = abs(diff(app.AnglesYZ{app.e}))./dt; % For YZ
+                        end
                     else
-                        app.AngVeloc_XZ{app.e} = NaN(size(app.AngVeloc_XY{app.e}));
-                        app.AngVelocStat {app.e,6} = NaN;
-                        app.AngVelocStat {app.e,7} = NaN;
-                        app.AngVelocStat {app.e,8} = NaN;
-                        app.AngVelocStat {app.e,9} = NaN;
-                        app.AngVelocStat {app.e,10} = NaN;
+                        app.AngVeloc_XY{app.e} = diff(app.AnglesXY{app.e})./dt;
+                        if app.Arb_Z == 0 % if the Z matrix is real
+                            app.AngVeloc_XZ{app.e} = diff(app.AnglesXZ{app.e})./dt;
+                            app.AngVeloc_YZ{app.e} = diff(app.AnglesYZ{app.e})./dt;
+                        end
                     end
 
-                    %% angular velocity on YZ plan
+                    % Descriptive statistics
+                    % For XY plan
+                    AngVel_xy = rmmissing(app.AngVeloc_XY{app.e});
+                    app.AngVelocStat {app.e,1} = min(AngVel_xy);
+                    app.AngVelocStat {app.e,2} = max(AngVel_xy);
+                    app.AngVelocStat {app.e,3} = mean(AngVel_xy);
+                    app.AngVelocStat {app.e,4} = median(AngVel_xy);
+                    app.AngVelocStat {app.e,5} = mode(nearest(AngVel_xy));
 
+                    % for XZ and YZ
                     if app.Arb_Z == 0 % if the Z matrix is real
-                        dO = abs(diff(app.AnglesYZ{app.e}));
-                        app.AngVeloc_YZ{app.e} = dO./dt;
-                        clear dO;
+                        % Remove NaN to calculate the stats
+                        AngVel_xz = rmmissing(app.AngVeloc_XZ{app.e});
+                        AngVel_yz = rmmissing(app.AngVeloc_YZ{app.e});
+                        % Create cell arrays containing the stats values
+                        app.AngVelocStat {app.e,6} = min(AngVel_xz);
+                        app.AngVelocStat {app.e,7} = max(AngVel_xz);
+                        app.AngVelocStat {app.e,8} = mean(AngVel_xz);
+                        app.AngVelocStat {app.e,9} = median(AngVel_xz);
+                        app.AngVelocStat {app.e,10} = mode(nearest(AngVel_xz));
 
-                        app.AngVelocStat {app.e,11} = min(app.AngVeloc_YZ{app.e});
-                        app.AngVelocStat {app.e,12} = max(app.AngVeloc_YZ{app.e});
-                        app.AngVelocStat {app.e,13} = mean(app.AngVeloc_YZ{app.e});
-                        app.AngVelocStat {app.e,14} = median(app.AngVeloc_YZ{app.e});
-                        app.AngVelocStat {app.e,15} = mode(nearest(app.AngVeloc_YZ{app.e}));
+                        app.AngVelocStat {app.e,11} = min(AngVel_yz);
+                        app.AngVelocStat {app.e,12} = max(AngVel_yz);
+                        app.AngVelocStat {app.e,13} = mean(AngVel_yz);
+                        app.AngVelocStat {app.e,14} = median(AngVel_yz);
+                        app.AngVelocStat {app.e,15} = mode(nearest(AngVel_yz));
                     else
-                        app.AngVeloc_YZ{app.e} = NaN(size(app.AngVeloc_XY{app.e}));
-                        app.AngVelocStat {app.e,11} = NaN;
-                        app.AngVelocStat {app.e,12} = NaN;
-                        app.AngVelocStat {app.e,13} = NaN;
-                        app.AngVelocStat {app.e,14} = NaN;
-                        app.AngVelocStat {app.e,15} = NaN;
+                        % fill the cell arrays with NaN so that there is no
+                        % problem when quering the data in the stat tab
+                        a = NaN(size(max(app.AngVeloc_XY{app.e}))); % Must always be XY as it exist
+                        for i = 6:15
+                            app.AngVelocStat {app.e, i} = a;
+                        end
+                    end
+                    %% Angular acceleration
+                    waitbar(.8,wb,'Calculating anglular acceleration');
+
+                    % Calculate angular acceleration on XY plan
+                    if app.AbsoluteValue == "Yes"
+                        app.AngAcc_XY{app.e} = abs(diff(app.AngVeloc_XY{app.e}))./dt(2,:);
+                        if app.Arb_Z == 0 % if the Z matrix is real
+                            app.AngAcc_XZ{app.e} = abs(diff(app.AngVeloc_XZ{app.e}))./dt(2,:);
+                            app.AngAcc_YZ{app.e} = abs(diff(app.AngVeloc_YZ{app.e}))./dt(2,:);
+                        end
+                    else
+                        app.AngAcc_XY{app.e} = diff(app.AngVeloc_XY{app.e})./dt(2,:);
+                        if app.Arb_Z == 0 % if the Z matrix is real
+                            app.AngAcc_XZ{app.e} = diff(app.AngVeloc_XZ{app.e})./dt(2,:);
+                            app.AngAcc_YZ{app.e} = diff(app.AngVeloc_YZ{app.e})./dt(2,:);
+                        end
                     end
 
-                    % Angular acceleration α
+                    % Descriptive statistics
+                    % For XY plan
+                    AnAc_XY = rmmissing(app.AngAcc_XY{app.e});
+                    app.AngAccStat {app.e,1} = min(AnAc_XY);
+                    app.AngAccStat {app.e,2} = max(AnAc_XY);
+                    app.AngAccStat {app.e,3} = mean(AnAc_XY);
+                    app.AngAccStat {app.e,4} = median(AnAc_XY);
+                    app.AngAccStat {app.e,5} = mode(nearest(AnAc_XY));
 
-                    % Angular acceleration on XY plan
-                    dw = app.AngVeloc_XY{app.e};
-                    app.AngAcc_XY{app.e} = abs(diff(dw))./(dt(2,:));
+                    if app.Arb_Z == 0
+                        % For the other plans
+                        AnAc_XZ = rmmissing(app.AngAcc_XZ{app.e});
+                        app.AngAccStat {app.e,6} = min(AnAc_XZ);
+                        app.AngAccStat {app.e,7} = max(AnAc_XZ);
+                        app.AngAccStat {app.e,8} = mean(AnAc_XZ);
+                        app.AngAccStat {app.e,9} = median(AnAc_XZ);
+                        app.AngAccStat {app.e,10} = mode(nearest(AnAc_XZ));
 
-                    app.AngAccStat {app.e,1} = min(app.AngAcc_XY{app.e});
-                    app.AngAccStat {app.e,2} = max(app.AngAcc_XY{app.e});
-                    app.AngAccStat {app.e,3} = mean(app.AngAcc_XY{app.e});
-                    app.AngAccStat {app.e,4} = median(app.AngAcc_XY{app.e});
-                    app.AngAccStat {app.e,5} = mode(nearest(app.AngAcc_XY{app.e}));
-
-
-                    % Angular acceleration on XZ plan
-                    if app.Arb_Z == 0 % if the Z matrix is real
-                        clear dw
-                        dw = app.AngVeloc_XZ{app.e};
-                        app.AngAcc_XZ{app.e} = abs(diff(dw))./(dt(2,:));
-
-                        app.AngAccStat {app.e,6} = min(app.AngAcc_XZ{app.e});
-                        app.AngAccStat {app.e,7} = max(app.AngAcc_XZ{app.e});
-                        app.AngAccStat {app.e,8} = mean(app.AngAcc_XZ{app.e});
-                        app.AngAccStat {app.e,9} = median(app.AngAcc_XZ{app.e});
-                        app.AngAccStat {app.e,10} = mode(nearest(app.AngAcc_XZ{app.e}));
-                    else
-                        app.AngAcc_XZ{app.e} = NaN(size(app.AngAcc_XY{app.e}));
-                        app.AngAccStat {app.e,6} = NaN;
-                        app.AngAccStat {app.e,7} = NaN;
-                        app.AngAccStat {app.e,8} = NaN;
-                        app.AngAccStat {app.e,9} = NaN;
-                        app.AngAccStat {app.e,10} = NaN;
-                    end
-
-                    % Angular acceleration on YZ plan
-                    if app.Arb_Z == 0 % if the Z matrix is real
-                        clear dw
-                        dw = app.AngVeloc_YZ{app.e};
-                        app.AngAcc_YZ{app.e} = abs(diff(dw))./(dt(2,:));
-
+                        AnAc_YZ = rmmissing(app.AngAcc_YZ{app.e});
                         app.AngAccStat {app.e,11} = min(app.AngAcc_YZ{app.e});
                         app.AngAccStat {app.e,12} = max(app.AngAcc_YZ{app.e});
                         app.AngAccStat {app.e,13} = mean(app.AngAcc_YZ{app.e});
                         app.AngAccStat {app.e,14} = median(app.AngAcc_YZ{app.e});
                         app.AngAccStat {app.e,15} = mode(nearest(app.AngAcc_YZ{app.e}));
                     else
-                        app.AngAcc_YZ{app.e} = NaN(size(app.AngAcc_XY{app.e}));
-                        app.AngAccStat {app.e,11} = NaN;
-                        app.AngAccStat {app.e,12} = NaN;
-                        app.AngAccStat {app.e,13} = NaN;
-                        app.AngAccStat {app.e,14} = NaN;
-                        app.AngAccStat {app.e,15} = NaN;
+                        % fill the cell arrays with NaN so that there is no
+                        % problem when quering the data in the stat tab
+                        a = NaN(size(max(app.AngAcc_XY{app.e}))); % MUST be XY as it exist
+                        for i = 6:15
+                            app.AngVelocStat {app.e, i} = a;
+                        end
                     end
                 else
                 end
-
                 %% waitbar update
                 waitbar(1,wb,'Analysis completed');
                 pause(0.4);
@@ -1729,6 +1685,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
             xlabel(app.UIAxes13, 'X'); ylabel(app.UIAxes13, 'Y');
             axis(app.UIAxes13, 'equal');
+            ApplyBackgroundC(app);
         end
 
         function results = CapturePositions(app) %#ok<STOUT>
@@ -1868,6 +1825,12 @@ classdef MotionAnalyser < matlab.apps.AppBase
             set( findobj(app.UIAxes12.YAxis), 'Visible', app.yaxis);
             set( findobj(app.UIAxes12.ZAxis), 'Visible', app.zaxis);
 
+            % Background color
+            ApplyBackgroundC(app)
+
+            % legend background
+            app.UIAxes.Legend.Color = [0.9 0.9 0.9];
+           
             % show or hide axis labels for the coordinate and animation tabs
             if app.xaxis == "on"
                 xlabel(app.UIAxes, 'X');
@@ -1937,6 +1900,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 xlabel(app.UIAxesEMG, 'Time');
                 ylabel(app.UIAxesEMG, 'Voltage');
                 legend (app.UIAxesEMG, app.colnameEMG);
+                ApplyBackgroundC(app);
             end
         end
 
@@ -1953,6 +1917,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             xlabel(app.UIAxesEMG, 'Time');
             ylabel(app.UIAxesEMG, 'Amplitude');
             legend (app.UIAxesSensor, app.colnameEMG);
+            ApplyBackgroundC(app);
         end
 
         function selectMOI = selectMOI(app) %#ok<STOUT>
@@ -2583,6 +2548,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             xlabel(app.UIAxes5, app.K_title);
             ylabel(app.UIAxes5, 'Occurence');
             legend(app.UIAxes5, app.K_colname, 'Location','southoutside', "Orientation","horizontal", "Box","off");
+            ApplyBackgroundC(app)
         end
 
         function IdentifyTab = IdentifyTab(app) %#ok<STOUT>
@@ -3461,6 +3427,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
             xlabel(app.UIAxesSensor, 'Time');
             ylabel(app.UIAxesSensor, 'Sensor amplitude');
             legend (app.UIAxesSensor, app.colnameSensor);
+            app.UIAxesSensor.Legend.Color = [0.9 0.9 0.9];
+            ApplyBackgroundC(app);
         end
 
         function UpdateSensorTable = UpdateSensorTable(app) %#ok<STOUT>
@@ -3571,6 +3539,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
             xlabel(app.UIAxesSensor, 'Time');
             ylabel(app.UIAxesSensor, 'Amplitude');
             legend (app.UIAxesSensor, app.colnameSensor);
+            app.UIAxesSensor.Legend.Color = [0.9 0.9 0.9];
+            ApplyBackgroundC(app);
         end
 
         function NumberElement = CheckNumberElementSelected(app)
@@ -3609,6 +3579,20 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % from going to the back
                 figure(app.MotionAnalyserUIFigure);
             end      
+        end
+        
+        function ApplyBackgroundC = ApplyBackgroundC(app) %#ok<MANU>
+                % Set the background color of the UIFigure
+                    app.UIAxes.Color = app.backgroundC;
+                    app.UIAxes12.Color = app.backgroundC;
+                    app.UIAxes2.Color = app.backgroundC;
+                    app.UIAxes3.Color = app.backgroundC;
+                    app.UIAxes4.Color = app.backgroundC;
+                    app.UIAxes5.Color = app.backgroundC;
+                    app.UIAxesEMG.Color = app.backgroundC;
+                    app.UIAxesSensor.Color = app.backgroundC;
+                    app.UIAxes14.Color = app.backgroundC;
+                    app.UIAxes13.Color = app.backgroundC;            
         end
     end
 
@@ -4148,6 +4132,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
             plot (app.UIAxes14, app.corrx, app.corry)
             axis(app.UIAxes14, 'equal');
+            ApplyBackgroundC(app);
 
         end
 
@@ -4302,6 +4287,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             plot (app.UIAxes14, lags, r);
             xlabel(app.UIAxes14, 'lag');
             ylabel(app.UIAxes14, 'Correlation values');
+            ApplyBackgroundC(app);
 
             % Determine the cross correlation value at lag 0:
             [C_value, ~] = xcorr(app.corrx, app.corry, 0, app.Scaleoption.Value);
@@ -4357,6 +4343,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             plot (app.UIAxes14, lags, acf);
             xlabel(app.UIAxes14, 'lag');
             ylabel(app.UIAxes14, 'Correlation values');
+            ApplyBackgroundC(app);
         end
 
         % Button pushed function: PlotautocorrelationButton
@@ -4371,6 +4358,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             plot (app.UIAxes14, lags, acf);
             xlabel(app.UIAxes14, 'lag');
             ylabel(app.UIAxes14, 'Correlation values');
+            ApplyBackgroundC(app);
         end
 
         % Button pushed function: GaitdiagramButton
@@ -4385,6 +4373,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     hold (app.UIAxes13, 'on')
                 end
                 xlabel(app.UIAxes13, 'Time'); ylabel(app.UIAxes13, 'Inter-limb distance');
+                ApplyBackgroundC(app);
 
                 % adjust ylim at 15% of the distance
                 a = ylim(app.UIAxes13);
@@ -4457,7 +4446,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     yyaxis(app.UIAxes14,'right')
                     plot(app.UIAxes14, app.corrTy, app.corry);
                     xlabel(app.UIAxes14, 'time');
-                    ylabel(app.UIAxes14, app.ParameterY.Value);
+                    ylabel(app.UIAxes14, app.ParameterY.Value);                    
 
                 case button1
                     % plot on the same Y-axis
@@ -4467,8 +4456,9 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     hold (app.UIAxes14, 'off')
 
                 case button3
-                    return;
+                    return;                    
             end
+            ApplyBackgroundC(app);
         end
 
         % Button pushed function: ShowallButton
@@ -5682,6 +5672,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Value changed function: ElementDropDown_4
         function ElementDropDown_4ValueChanged(app, event)
+         if numel (app.X) >= 1 
             GaitPlot(app);
 
             % reset captured values
@@ -5706,7 +5697,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.capture_t2 = [];
 
             app.PositionSlider_2.Value = 1; % reposition slider
-            app.PositionEditField.Value = 1; % reset position number
+            app.PositionEditField.Value = 1; % reset position number         
+         end
         end
 
         % Menu selected function: ImportXandYKinoveaMenu
@@ -6415,8 +6407,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
             end
         end
 
-        % Menu selected function: InvertXMenu_3
-        function InvertXMenu_3Selected(app, event)
+        % Menu selected function: InvertXdirectionMenu
+        function InvertXdirectionMenuSelected(app, event)
             % Identify which tab is used
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
                        
@@ -6442,8 +6434,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
             end
         end
 
-        % Menu selected function: InvertYMenu_3
-        function InvertYMenu_3Selected(app, event)
+        % Menu selected function: InvertYdirectionMenu
+        function InvertYdirectionMenuSelected(app, event)
             % Identify which tab is used
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
                      
@@ -6470,8 +6462,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
             
         end
 
-        % Menu selected function: InvertZMenu_2
-        function InvertZMenu_2Selected(app, event)
+        % Menu selected function: InvertZdirectionMenu
+        function InvertZdirectionMenuSelected(app, event)
             % Identify which tab is used
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
             
@@ -7299,6 +7291,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     end
             end
             app.PlotDropDown.Value = 'Choose';
+            ApplyBackgroundC(app);
         end
 
         % Button pushed function: iButton_3
@@ -7350,7 +7343,6 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.UITableStat.Data = [];
             app.UITableData.ColumnName = [];
 
-
             % Fill the table depending on the element selected and the POI selected
             if app.ParameterX_2.Value == "Distance"
                 % show descriptive stats
@@ -7378,13 +7370,13 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 if app.Arb_Z == 0 % if the Z matrix has real values
                     % Plots descriptive stats
                     app.UITableStat.ColumnName = ["", "Vx","Vy","Vz","Vxy","Vxz","Vyz","Vxyz"];
-                    col2 = [(app.AccelerationStat {app.e,1}(:,idx3)); (app.AccelerationStat {app.e,2}(:,idx3)); (app.AccelerationStat {app.e,3}(:,idx3)); (app.AccelerationStat {app.e,4}(:,idx3)); (app.AccelerationStat {app.e,5}(:,idx3))];
-                    col3 = [(app.AccelerationStat {app.e,6}(:,idx3)); (app.AccelerationStat {app.e,7}(:,idx3)); (app.AccelerationStat {app.e,8}(:,idx3)); (app.AccelerationStat {app.e,9}(:,idx3)); (app.AccelerationStat {app.e,10}(:,idx3))];
-                    col4 = [(app.AccelerationStat {app.e,11}(:,idx3)); (app.AccelerationStat {app.e,12}(:,idx3)); (app.AccelerationStat {app.e,13}(:,idx3)); (app.AccelerationStat {app.e,14}(:,idx3)); (app.AccelerationStat {app.e,15}(:,idx3))];
-                    col5 = [(app.AccelerationStat {app.e,16}(:,idx3)); (app.AccelerationStat {app.e,17}(:,idx3)); (app.AccelerationStat {app.e,18}(:,idx3)); (app.AccelerationStat {app.e,19}(:,idx3)); (app.AccelerationStat {app.e,20}(:,idx3))];
-                    col6 = [(app.AccelerationStat {app.e,21}(:,idx3)); (app.AccelerationStat {app.e,22}(:,idx3)); (app.AccelerationStat {app.e,23}(:,idx3)); (app.AccelerationStat {app.e,24}(:,idx3)); (app.AccelerationStat {app.e,25}(:,idx3))];
-                    col7 = [(app.AccelerationStat {app.e,26}(:,idx3)); (app.AccelerationStat {app.e,27}(:,idx3)); (app.AccelerationStat {app.e,28}(:,idx3)); (app.AccelerationStat {app.e,29}(:,idx3)); (app.AccelerationStat {app.e,30}(:,idx3))];
-                    col8 = [(app.AccelerationStat {app.e,31}(:,idx3)); (app.AccelerationStat {app.e,32}(:,idx3)); (app.AccelerationStat {app.e,33}(:,idx3)); (app.AccelerationStat {app.e,34}(:,idx3)); (app.AccelerationStat {app.e,35}(:,idx3))];
+                    col2 = [(app.VelocityStat{app.e,1}(:,idx3)); (app.VelocityStat{app.e,2}(:,idx3)); (app.VelocityStat{app.e,3}(:,idx3)); (app.VelocityStat{app.e,4}(:,idx3)); (app.VelocityStat{app.e,5}(:,idx3))];
+                    col3 = [(app.VelocityStat{app.e,6}(:,idx3)); (app.VelocityStat{app.e,7}(:,idx3)); (app.VelocityStat{app.e,8}(:,idx3)); (app.VelocityStat{app.e,9}(:,idx3)); (app.VelocityStat{app.e,10}(:,idx3))];
+                    col4 = [(app.VelocityStat{app.e,11}(:,idx3)); (app.VelocityStat{app.e,12}(:,idx3)); (app.VelocityStat{app.e,13}(:,idx3)); (app.VelocityStat{app.e,14}(:,idx3)); (app.VelocityStat{app.e,15}(:,idx3))];
+                    col5 = [(app.VelocityStat{app.e,16}(:,idx3)); (app.VelocityStat{app.e,17}(:,idx3)); (app.VelocityStat{app.e,18}(:,idx3)); (app.VelocityStat{app.e,19}(:,idx3)); (app.VelocityStat{app.e,20}(:,idx3))];
+                    col6 = [(app.VelocityStat{app.e,21}(:,idx3)); (app.VelocityStat{app.e,22}(:,idx3)); (app.VelocityStat{app.e,23}(:,idx3)); (app.VelocityStat{app.e,24}(:,idx3)); (app.VelocityStat{app.e,25}(:,idx3))];
+                    col7 = [(app.VelocityStat{app.e,26}(:,idx3)); (app.VelocityStat{app.e,27}(:,idx3)); (app.VelocityStat{app.e,28}(:,idx3)); (app.VelocityStat{app.e,29}(:,idx3)); (app.VelocityStat{app.e,30}(:,idx3))];
+                    col8 = [(app.VelocityStat{app.e,31}(:,idx3)); (app.VelocityStat{app.e,32}(:,idx3)); (app.VelocityStat{app.e,33}(:,idx3)); (app.VelocityStat{app.e,34}(:,idx3)); (app.VelocityStat{app.e,35}(:,idx3))];
                     data = [col1 col2 col3 col4 col5 col6 col7 col8];
                     app.UITableStat.Data = data;
                     clear data;
@@ -7398,16 +7390,16 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 else
                     % Plots descriptive stats
                     app.UITableStat.ColumnName = ["", "Vx","Vy","Vxy"];
-                    col2 = [(app.AccelerationStat {app.e,1}(:,idx3)); (app.AccelerationStat {app.e,2}(:,idx3)); (app.AccelerationStat {app.e,3}(:,idx3)); (app.AccelerationStat {app.e,4}(:,idx3)); (app.AccelerationStat {app.e,5}(:,idx3))];
-                    col3 = [(app.AccelerationStat {app.e,6}(:,idx3)); (app.AccelerationStat {app.e,7}(:,idx3)); (app.AccelerationStat {app.e,8}(:,idx3)); (app.AccelerationStat {app.e,9}(:,idx3)); (app.AccelerationStat {app.e,10}(:,idx3))];
-                    col5 = [(app.AccelerationStat {app.e,16}(:,idx3)); (app.AccelerationStat {app.e,17}(:,idx3)); (app.AccelerationStat {app.e,18}(:,idx3)); (app.AccelerationStat {app.e,19}(:,idx3)); (app.AccelerationStat {app.e,20}(:,idx3))];
+                    col2 = [(app.VelocityStat{app.e,1}(:,idx3)); (app.VelocityStat{app.e,2}(:,idx3)); (app.VelocityStat{app.e,3}(:,idx3)); (app.VelocityStat{app.e,4}(:,idx3)); (app.VelocityStat{app.e,5}(:,idx3))];
+                    col3 = [(app.VelocityStat{app.e,6}(:,idx3)); (app.VelocityStat{app.e,7}(:,idx3)); (app.VelocityStat{app.e,8}(:,idx3)); (app.VelocityStat{app.e,9}(:,idx3)); (app.VelocityStat{app.e,10}(:,idx3))];
+                    col5 = [(app.VelocityStat{app.e,16}(:,idx3)); (app.VelocityStat{app.e,17}(:,idx3)); (app.VelocityStat{app.e,18}(:,idx3)); (app.VelocityStat{app.e,19}(:,idx3)); (app.VelocityStat{app.e,20}(:,idx3))];
                     data = [col1 col2 col3 col5];
                     app.UITableStat.Data = data;
                     clear data;
 
                     % show calculated data
                     app.UITableData.ColumnName = ["Vx","Vy","Vxy"];
-                    data = [app.VX{app.e,1}(:,idx3), app.VY{app.e,1}(:,idx3), app.VXY{app.e,1}(:,idx3)];
+                    data = [app.VX{app.e}(:,idx3), app.VY{app.e}(:,idx3), app.VXY{app.e}(:,idx3)];
                     app.UITableData.Data = data;
                     clear data;
                 end
@@ -7431,7 +7423,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
                     % Show calculated data
                     app.UITableData.ColumnName = ["Ax","Ay","Az","Axy","Axz","Ayz","Axyz"];
-                    data = [app.AX{app.e,1}(:,idx3), app.AY{app.e,1}(:,idx3), app.AZ{app.e,1}(:,idx3), app.AXY{app.e,1}(:,idx3), app.AXZ{app.e,1}(:,idx3), app.AYZ{app.e,1}(:,idx3), app.AXYZ{app.e,1}(:,idx3)];
+                    data = [app.AX{app.e}(:,idx3), app.AY{app.e}(:,idx3), app.AZ{app.e}(:,idx3), app.AXY{app.e}(:,idx3), app.AXZ{app.e}(:,idx3), app.AYZ{app.e}(:,idx3), app.AXYZ{app.e}(:,idx3)];
                     app.UITableData.Data = data;
                     clear data;
 
@@ -7447,7 +7439,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
                     % show calculated data
                     app.UITableData.ColumnName = ["Ax","Ay","Axy"];
-                    data = [app.AX{app.e,1}(:,idx3), app.AY{app.e,1}(:,idx3), app.AXY{app.e,1}(:,idx3)];
+                    data = [app.AX{app.e}(:,idx3), app.AY{app.e}(:,idx3), app.AXY{app.e}(:,idx3)];
                     app.UITableData.Data = data;
                     clear data;
                 end
@@ -7456,7 +7448,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             elseif app.ParameterX_2.Value == "Angular variation"  % Δθ
                 col1 = ["Min"; "Max"; "Mean"; "Median"; "Mode"];
                 if app.Arb_Z == 0 % if the Z matrix is real
-                    % Plots descriptive stats
+                    % descriptive stats
                     app.UITableStat.ColumnName = ["", "Δθxy","Δθxz","Δθyz"];
                     col2 = [(app.AngleStat {app.e,1}(:,idx3)); (app.AngleStat {app.e,2}(:,idx3)); (app.AngleStat {app.e,3}(:,idx3)); (app.AngleStat {app.e,4}(:,idx3)); (app.AngleStat {app.e,5}(:,idx3))];
                     col3 = [(app.AngleStat {app.e,6}(:,idx3)); (app.AngleStat {app.e,7}(:,idx3)); (app.AngleStat {app.e,8}(:,idx3)); (app.AngleStat {app.e,9}(:,idx3)); (app.AngleStat {app.e,10}(:,idx3))];
@@ -7465,7 +7457,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     app.UITableStat.Data = data;
                     clear data;
 
-                    % plot calculated date
+                    % calculated data
                     app.UITableData.ColumnName = ["Δθxy","Δθxz","Δθyz"];
                     data = [app.AnglesXY{app.e,1}(:,idx3), app.AnglesXZ{app.e,1}(:,idx3), app.AnglesYZ{app.e,1}(:,idx3)];
                     app.UITableData.Data = data;
@@ -7499,7 +7491,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
                     % plot calculated data
                     app.UITableData.ColumnName = ["ωxy","ωxz","ωyz"];
-                    data = [app.AngVeloc_XY{app.e,1}(:,idx3), app.AngVeloc_XZ{app.e,1}(:,idx3), app.AngVeloc_XZ{app.e,1}(:,idx3)];
+                    data = [app.AngVeloc_XY{app.e,1}(:,idx3), app.AngVeloc_XZ{app.e,1}(:,idx3), app.AngVeloc_YZ{app.e,1}(:,idx3)];
                     app.UITableData.Data = data;
                     clear data;
                 else
@@ -7527,7 +7519,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
                     % plot calculated data
                     app.UITableData.ColumnName = ["αxy","αxz","αyz"];
-                    data = [app.AngAcc_XY{app.e,1}(:,idx3), app.AngACC_XZ{app.e,1}(:,idx3), app.AngAcc_XZ{app.e,1}(:,idx3)];
+                    data = [app.AngAcc_XY{app.e,1}(:,idx3), app.AngAcc_XZ{app.e,1}(:,idx3), app.AngAcc_YZ{app.e,1}(:,idx3)];
                     app.UITableData.Data = data;
                     clear data;
                 else
@@ -8958,6 +8950,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             plot(app.UIAxes14, app.RStime, euclidean_dist);
             xlabel(app.UIAxes14, 'time');
             ylabel(app.UIAxes14, 'Euclidean distance');
+            ApplyBackgroundC(app);
 
             % Fill the UITableCCC
             % fetch columnane etc.
@@ -9007,6 +9000,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             xlabel(app.UIAxes14, 'time');
             ylabel(app.UIAxes14, 'Integrand');
             title(app.UIAxes14, 'Inner product')
+            ApplyBackgroundC(app);
 
         end
 
@@ -9171,13 +9165,15 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     app.transport = app.SensorValues;
                     SpreadOnY(app); % app function
 
-                    % Plot spreaded EMG
+                    % Plot spreaded sensor data
                     cla(app.UIAxesSensor); cla(app.UIAxesSensor,'reset');
                     plot (app.UIAxesSensor, app.tSensor, app.retour)
                     title(app.UIAxesSensor, 'Original sensor signal');
                     xlabel(app.UIAxesSensor, 'Time');
                     ylabel(app.UIAxesSensor, 'Amplitude');
                     legend (app.UIAxesSensor, app.colnameSensor);
+                    app.UIAxesSensor.Legend.Color = [0.9 0.9 0.9];
+                    ApplyBackgroundC(app);
 
                 case "Sensor signal envelope"
                     if isempty(app.Senvelope) == 1
@@ -9463,36 +9459,6 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Button pushed function: RecalculateButton
         function RecalculateButtonPushed(app, event)
-            if isempty(app.AbsoluteValue) || isempty(app.AngleUnit)
-                prompt = {'Use absolute values for speed and acceleration (y/n)','Angle unit in Degrees or Radians (D/R)'};
-                dlgtitle = 'Calculation settings';
-                dims = [1 45];
-                definput = {'y','D'};
-                answer = inputdlg(prompt,dlgtitle,dims,definput);
-
-                if isempty(answer)
-                    app.AbsoluteValue = "Yes";
-                    app.AngleUnit = 'Degrees';
-                else
-                    if char(answer(1)) == 'n'
-                        app.AbsoluteValue = "No";
-                    else
-                        app.AbsoluteValue = "Yes";
-                    end
-
-                    if char(answer(2)) == 'R'
-                        app.AngleUnit = 'Radians';
-                    else
-                        app.AngleUnit = 'Degrees';
-                    end
-                end
-            else
-            end
-
-            % Select the element according to the dropdown item
-            [~, idx] = ismember(app.ElementDropDown.Value, app.ElementName);
-            app.e = idx;
-
             % Analyse kinematic properties
             AnalyseKinematic (app)
         end
@@ -9589,6 +9555,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 hold (app.UIAxes13, 'off')
 
                 xlabel(app.UIAxes13, 'Time'); ylabel(app.UIAxes13, 'Foot-lift amplitude');
+                ApplyBackgroundC(app);
 
                 % adjust ylim at 15% of the distance
                 a = ylim(app.UIAxes13);
@@ -9882,6 +9849,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             delete(app.P4);
             app.P4 = plot (app.UIAxesEMG, app.tEMG(app.n3), app.retour(app.n3,:), 'Color', 'k', 'Marker', app.Mtype, "MarkerEdgeColor",app.MarkerEdgeColor, ...
                 "MarkerFaceColor", app.MarkerFaceColor, "MarkerSize", app.Msize, "LineWidth", app.LineThickness);
+            ApplyBackgroundC(app);
 
             % display the position number
             app.PositionFieldEMG.Value = app.n3;
@@ -10130,8 +10098,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
             delete(app.UIAxes12.Children);
         end
 
-        % Button pushed function: CaptureButton
-        function CaptureButtonPushed(app, event)
+        % Button pushed function: SetfromdisplayButton
+        function SetfromdisplayButtonPushed(app, event)
            % This function captures the azimuth and elevation of the UIAxes12
            [app.SetazimuthtoEditField.Value, app.SetelevationtoEditField.Value] = view(app.UIAxes12); % capture
            updateview(app) 
@@ -10261,62 +10229,162 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 UpdateSensorTable(app);
             else
             end
-
         end
 
-        % Callback function: not associated with a component
-        function testButtonPushed(app, event)
-            rotate3d(app.UIAxes12, 'on'); % Enable 3D rotation for app.UIAxes
-            if numel(app.X) >=1
-                for m = 1:length(app.e)
-                    if app.nPOI{app.e(m)}(1) >= 2
+        % Menu selected function: WhitedefaultMenu
+        function WhitedefaultMenuSelected(app, event)
+            % Set the background color of the UIFigure to black
+            app.backgroundC = [1 1 1];
+            ApplyBackgroundC(app)
+        end
 
-                        lines = cell(size((app.XAnim{app.e(1)}), 1), size(app.e, 2));
+        % Menu selected function: BlackMenu
+        function BlackMenuSelected(app, event)
+            app.backgroundC = [0 0 0];
+            ApplyBackgroundC(app)
+        end
 
-                        cla(app.UIAxes12,'reset')
-                        cmap = get(app.UIAxes12,'defaultAxesColorOrder');
+        % Menu selected function: BleuMenu
+        function BleuMenuSelected(app, event)
+            app.backgroundC = [0 0 1];
+            ApplyBackgroundC(app)
+        end
 
-                        % plot all segments
-                        axis(app.UIAxes12, 'auto')
-                        hold(app.UIAxes12, 'on')
+        % Menu selected function: RGBvaluesMenu
+        function RGBvaluesMenuSelected(app, event)
+            % Create a dialog box with three fields for RGB values
+            prompt = {'Red (0-255):', 'Green (0-255):', 'Blue (0-255):'};
+            title = 'Enter RGB Values';
+            dims = [1 35]; % Dimensions for the input fields
+            defaultRGB = {'0', '0', '0'}; % Default values
 
-                        for k=1:size(app.e, 2)
-                            lines(:, k) = num2cell(plot3(app.UIAxes12, app.XAnim{app.e(k)}', app.YAnim{app.e(k)}', app.Z{app.e(k)}', ...
-                                'Color', cmap(k, :), 'Marker', app.Mtype, "MarkerEdgeColor",app.MarkerEdgeColor, ...
-                                "MarkerFaceColor", app.MarkerFaceColor, "MarkerSize", app.Msize, "LineWidth", app.LineThickness));
-                        end
-                        app.UIAxes12.DataAspectRatio = [1 1 1];
-                        Axes1_12Settings(app)
+            rgbValues = inputdlg(prompt, title, dims, defaultRGB);
 
-                        % ylim(app.UIAxes12,[(-app.dist.*1.5), (app.dist*1.5)]);
-                        updateview(app)
+            % Check if the user clicked Cancel or closed the dialog            
+                % Extract RGB values
+                red = str2double(rgbValues{1})/255;
+                green = str2double(rgbValues{2})/255;
+                blue = str2double(rgbValues{3})/255;
 
-                        %end
-                        hold(app.UIAxes12, 'off')
-                        axis(app.UIAxes12, 'manual')
+                % check that the values are between 0 and 1
+                if all(~isnan([red, green, blue])) && all(red >= 0) && all(red <= 1) && ...
+                        all(green >= 0) && all(green <= 1) && all(blue >= 0) && all(blue <= 1)
 
-                        for i = 2:size(lines, 1)
-                            for l = lines(i, :)
-                                l{1}.Visible = 0; %#ok<FXSET>
-                            end
-                        end
-
-                        for i = 2:size(lines, 1)
-                            pause(app.TimeInterval)
-                            for l = lines(i-1, :)
-                                l{1}.Visible = 0; %#ok<FXSET>
-                            end
-                            for l = lines(i, :)
-                                l{1}.Visible = 1; %#ok<FXSET>
-                            end
-                        end
-                    else
-                        msgbox('Insufficient POI')
-                    end
+                    % Create an array for the RGB values
+                    app.backgroundC = [red, green, blue];
+                else
+                    msgbox('Invalid RGB values. Please enter values between 0 and 255.');
                 end
-            else
-                msgbox('No coordinates available')
-            end
+            ApplyBackgroundC(app)
+        end
+
+        % Menu selected function: LightBleuMenu
+        function LightBleuMenuSelected(app, event)
+            app.backgroundC = [0.68 0.85 0.9];
+            ApplyBackgroundC(app)
+        end
+
+        % Menu selected function: GreenMenu
+        function GreenMenuSelected(app, event)
+            app.backgroundC = [0 1 0];
+            ApplyBackgroundC(app)
+        end
+
+        % Menu selected function: LightgreenMenu
+        function LightgreenMenuSelected(app, event)
+            app.backgroundC = [0.68 0.85 0.68];
+            ApplyBackgroundC(app)
+        end
+
+        % Menu selected function: OrangeMenu
+        function OrangeMenuSelected(app, event)
+            app.backgroundC = [1 0.65 0];
+            ApplyBackgroundC(app)
+        end
+
+        % Menu selected function: LightorangeMenu
+        function LightorangeMenuSelected(app, event)
+            app.backgroundC= [1 0.8 0.6];
+            ApplyBackgroundC(app)
+        end
+
+        % Menu selected function: SwapXandYMenu
+        function SwapXandYMenuSelected(app, event)
+            bkpData(app)
+            app.X{app.e} = app.Y_old{app.e};
+            app.Y{app.e} = app.X_old{app.e};
+            updateplot(app); UpdateTable(app); UpdateAnimStep(app);            
+        end
+
+        % Menu selected function: SwapXandZMenu
+        function SwapXandZMenuSelected(app, event)
+            bkpData(app)
+            app.X{app.e} = app.Z_old{app.e};
+            app.Z{app.e} = app.X_old{app.e};
+            updateplot(app); UpdateTable(app); UpdateAnimStep(app);
+        end
+
+        % Menu selected function: SwapYandZMenu
+        function SwapYandZMenuSelected(app, event)
+            bkpData(app)
+            app.Y{app.e} = app.Z_old{app.e};
+            app.Z{app.e} = app.Y_old{app.e};
+            updateplot(app); UpdateTable(app); UpdateAnimStep(app);
+        end
+
+        % Menu selected function: SplitMenu
+        function SplitMenuSelected(app, event)
+            % launch a dialogue box to select the relevant POI
+            SelectPOI(app)
+            p = app.SelectedOptionIndex; % user choice
+            bkpData(app)
+
+            % Select the POI of the new elemet
+            NewX = app.X{app.e}(:, p:end);
+            NewY = app.Y{app.e}(:, p:end);
+            NewZ = app.Z{app.e}(:, p:end);
+            NewT = app.T{app.e};
+            NewColname = app.colname{app.e}(:, p:end);
+                        
+            % shorten the current element to the choosen POI
+            app.X{app.e} = app.X{app.e}(:, 1:p);
+            app.Y{app.e} = app.Y{app.e}(:, 1:p);
+            app.Z{app.e} = app.Z{app.e}(:, 1:p); 
+            app.colname{app.e} = app.colname{app.e}(:, 1:p);            
+            
+            % Change the name of the "old element"
+            app.ElementName(app.e) = {'Split element1'};
+
+            % assigne a new nPOI to the "old element"
+            app.nPOI{app.e} = size (app.X{app.e}, 2);
+            
+            % Increment the app.e
+            h = app.te(end) + 1; % te is total number of element
+            app.te = [app.e, h];
+            app.e = app.te(end);
+
+            % Create the new element
+            app.X{app.e} = NewX;
+            app.Y{app.e} = NewY;
+            app.Z{app.e} = NewZ;
+            app.T{app.e} = NewT;
+            app.colname{app.e} = NewColname;
+
+            % Increment the element name to the new split          
+            app.ElementName = [app.ElementName; {'Split element2'}];
+
+            % Determin the nPOI to the "old element"
+            app.nPOI{app.e} = size (app.X{app.e}, 2); 
+
+            % Update Element Table
+            UpdateElementTable(app);
+            updateplot(app); UpdateTable(app); UpdateAnimStep(app);
+        end
+
+        % Menu selected function: GrayMenu
+        function GrayMenuSelected(app, event)
+            app.backgroundC = [0.9 0.9 0.9];
+            ApplyBackgroundC(app)
         end
     end
 
@@ -10540,25 +10608,53 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.AlignonXYZMenu.MenuSelectedFcn = createCallbackFcn(app, @AlignonXYZMenuSelected, true);
             app.AlignonXYZMenu.Text = 'Align on XYZ';
 
+            % Create ElementsMenu
+            app.ElementsMenu = uimenu(app.EditMenu);
+            app.ElementsMenu.Text = 'Elements';
+
+            % Create MergeMenu
+            app.MergeMenu = uimenu(app.ElementsMenu);
+            app.MergeMenu.Text = 'Merge';
+
+            % Create SplitMenu
+            app.SplitMenu = uimenu(app.ElementsMenu);
+            app.SplitMenu.MenuSelectedFcn = createCallbackFcn(app, @SplitMenuSelected, true);
+            app.SplitMenu.Text = 'Split';
+
             % Create InvertMenu
             app.InvertMenu = uimenu(app.EditMenu);
             app.InvertMenu.Tooltip = {'This inverts the coordinates'};
             app.InvertMenu.Text = 'Invert';
 
-            % Create InvertXMenu_3
-            app.InvertXMenu_3 = uimenu(app.InvertMenu);
-            app.InvertXMenu_3.MenuSelectedFcn = createCallbackFcn(app, @InvertXMenu_3Selected, true);
-            app.InvertXMenu_3.Text = 'Invert X';
+            % Create InvertXdirectionMenu
+            app.InvertXdirectionMenu = uimenu(app.InvertMenu);
+            app.InvertXdirectionMenu.MenuSelectedFcn = createCallbackFcn(app, @InvertXdirectionMenuSelected, true);
+            app.InvertXdirectionMenu.Text = 'Invert X direction';
 
-            % Create InvertYMenu_3
-            app.InvertYMenu_3 = uimenu(app.InvertMenu);
-            app.InvertYMenu_3.MenuSelectedFcn = createCallbackFcn(app, @InvertYMenu_3Selected, true);
-            app.InvertYMenu_3.Text = 'Invert Y';
+            % Create InvertYdirectionMenu
+            app.InvertYdirectionMenu = uimenu(app.InvertMenu);
+            app.InvertYdirectionMenu.MenuSelectedFcn = createCallbackFcn(app, @InvertYdirectionMenuSelected, true);
+            app.InvertYdirectionMenu.Text = 'Invert Y direction';
 
-            % Create InvertZMenu_2
-            app.InvertZMenu_2 = uimenu(app.InvertMenu);
-            app.InvertZMenu_2.MenuSelectedFcn = createCallbackFcn(app, @InvertZMenu_2Selected, true);
-            app.InvertZMenu_2.Text = 'Invert Z';
+            % Create InvertZdirectionMenu
+            app.InvertZdirectionMenu = uimenu(app.InvertMenu);
+            app.InvertZdirectionMenu.MenuSelectedFcn = createCallbackFcn(app, @InvertZdirectionMenuSelected, true);
+            app.InvertZdirectionMenu.Text = 'Invert Z direction';
+
+            % Create SwapXandYMenu
+            app.SwapXandYMenu = uimenu(app.InvertMenu);
+            app.SwapXandYMenu.MenuSelectedFcn = createCallbackFcn(app, @SwapXandYMenuSelected, true);
+            app.SwapXandYMenu.Text = 'Swap X and Y';
+
+            % Create SwapXandZMenu
+            app.SwapXandZMenu = uimenu(app.InvertMenu);
+            app.SwapXandZMenu.MenuSelectedFcn = createCallbackFcn(app, @SwapXandZMenuSelected, true);
+            app.SwapXandZMenu.Text = 'Swap X and Z';
+
+            % Create SwapYandZMenu
+            app.SwapYandZMenu = uimenu(app.InvertMenu);
+            app.SwapYandZMenu.MenuSelectedFcn = createCallbackFcn(app, @SwapYandZMenuSelected, true);
+            app.SwapYandZMenu.Text = 'Swap Y and Z';
 
             % Create RotateMenu
             app.RotateMenu = uimenu(app.EditMenu);
@@ -10800,6 +10896,60 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.ZaxisMenu_2 = uimenu(app.HideMenu_2);
             app.ZaxisMenu_2.MenuSelectedFcn = createCallbackFcn(app, @ZaxisMenu_2Selected, true);
             app.ZaxisMenu_2.Text = 'Z-axis';
+
+            % Create BackgroundMenu
+            app.BackgroundMenu = uimenu(app.AppearanceMenu);
+            app.BackgroundMenu.Text = 'Background';
+
+            % Create WhitedefaultMenu
+            app.WhitedefaultMenu = uimenu(app.BackgroundMenu);
+            app.WhitedefaultMenu.MenuSelectedFcn = createCallbackFcn(app, @WhitedefaultMenuSelected, true);
+            app.WhitedefaultMenu.Text = 'White (default)';
+
+            % Create BlackMenu
+            app.BlackMenu = uimenu(app.BackgroundMenu);
+            app.BlackMenu.MenuSelectedFcn = createCallbackFcn(app, @BlackMenuSelected, true);
+            app.BlackMenu.Text = 'Black';
+
+            % Create GrayMenu
+            app.GrayMenu = uimenu(app.BackgroundMenu);
+            app.GrayMenu.MenuSelectedFcn = createCallbackFcn(app, @GrayMenuSelected, true);
+            app.GrayMenu.Text = 'Gray';
+
+            % Create BleuMenu
+            app.BleuMenu = uimenu(app.BackgroundMenu);
+            app.BleuMenu.MenuSelectedFcn = createCallbackFcn(app, @BleuMenuSelected, true);
+            app.BleuMenu.Text = 'Bleu';
+
+            % Create LightBleuMenu
+            app.LightBleuMenu = uimenu(app.BackgroundMenu);
+            app.LightBleuMenu.MenuSelectedFcn = createCallbackFcn(app, @LightBleuMenuSelected, true);
+            app.LightBleuMenu.Text = 'Light Bleu';
+
+            % Create GreenMenu
+            app.GreenMenu = uimenu(app.BackgroundMenu);
+            app.GreenMenu.MenuSelectedFcn = createCallbackFcn(app, @GreenMenuSelected, true);
+            app.GreenMenu.Text = 'Green';
+
+            % Create LightgreenMenu
+            app.LightgreenMenu = uimenu(app.BackgroundMenu);
+            app.LightgreenMenu.MenuSelectedFcn = createCallbackFcn(app, @LightgreenMenuSelected, true);
+            app.LightgreenMenu.Text = 'Light green';
+
+            % Create OrangeMenu
+            app.OrangeMenu = uimenu(app.BackgroundMenu);
+            app.OrangeMenu.MenuSelectedFcn = createCallbackFcn(app, @OrangeMenuSelected, true);
+            app.OrangeMenu.Text = 'Orange';
+
+            % Create LightorangeMenu
+            app.LightorangeMenu = uimenu(app.BackgroundMenu);
+            app.LightorangeMenu.MenuSelectedFcn = createCallbackFcn(app, @LightorangeMenuSelected, true);
+            app.LightorangeMenu.Text = 'Light orange';
+
+            % Create RGBvaluesMenu
+            app.RGBvaluesMenu = uimenu(app.BackgroundMenu);
+            app.RGBvaluesMenu.MenuSelectedFcn = createCallbackFcn(app, @RGBvaluesMenuSelected, true);
+            app.RGBvaluesMenu.Text = 'RGB values';
 
             % Create StickdiagramMenu_2
             app.StickdiagramMenu_2 = uimenu(app.AppearanceMenu);
@@ -11193,11 +11343,11 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.TimeintervalEditField.Position = [14 7 42 22];
             app.TimeintervalEditField.Value = 0.1;
 
-            % Create CaptureButton
-            app.CaptureButton = uibutton(app.AdjustPanel, 'push');
-            app.CaptureButton.ButtonPushedFcn = createCallbackFcn(app, @CaptureButtonPushed, true);
-            app.CaptureButton.Position = [15 63 90 23];
-            app.CaptureButton.Text = 'Set from display';
+            % Create SetfromdisplayButton
+            app.SetfromdisplayButton = uibutton(app.AdjustPanel, 'push');
+            app.SetfromdisplayButton.ButtonPushedFcn = createCallbackFcn(app, @SetfromdisplayButtonPushed, true);
+            app.SetfromdisplayButton.Position = [10 63 101 23];
+            app.SetfromdisplayButton.Text = 'Set from display';
 
             % Create NormalisetracestoPanel
             app.NormalisetracestoPanel = uipanel(app.AnimationTab);
