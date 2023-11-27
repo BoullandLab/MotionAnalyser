@@ -1,4 +1,5 @@
 # MotionAnalyser
+<img src ="https://github.com/BoullandLab/MotionAnalyser/assets/115705215/6e8ca692-5ad1-4fc5-8cc1-a34cdef4332c" width="70" style="float: left; margin-right: 15px">
 
 **MotionAnalyser** is a GUI designed to facilitate the handling, preprocessing, and analysis of motion tracking data together with electrophysiology and sensor system signals. It is designed to streamline the characterization of movements in 3D space widely used in disciplines such as sport, physiotherapy, and behavioral science.
 
