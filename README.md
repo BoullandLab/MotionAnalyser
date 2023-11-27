@@ -9,6 +9,7 @@ A MATLAB application package, as well as standalone installers for Windows and L
 # Reference
 
 - **Integrated software for multi-dimensional analysis of motion using tracking, electrophysiology, and sensor signals**, Eis Annavini and Jean-Luc Boulland (2023), Front. Bioeng. Biotechnol. DOI: 10.3389/fbioe.2023.1250102.
+https://www.frontiersin.org/articles/10.3389/fbioe.2023.1250102/full
 
 # License
 
