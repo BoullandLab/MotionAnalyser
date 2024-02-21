@@ -35,7 +35,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         svgMenu                         matlab.ui.container.Menu
         AnimationMenu_2                 matlab.ui.container.Menu
         AVIMenu                         matlab.ui.container.Menu
-        GIFMenu                         matlab.ui.container.Menu
+        GIFbuggedMenu                   matlab.ui.container.Menu
         EditMenu                        matlab.ui.container.Menu
         AlignelementsMenu               matlab.ui.container.Menu
         AlignonXMenu                    matlab.ui.container.Menu
@@ -44,8 +44,10 @@ classdef MotionAnalyser < matlab.apps.AppBase
         AlignonXYMenu                   matlab.ui.container.Menu
         AlignonXYZMenu                  matlab.ui.container.Menu
         ElementsMenu                    matlab.ui.container.Menu
-        MergeMenu                       matlab.ui.container.Menu
+        MergenotcodedMenu               matlab.ui.container.Menu
         SplitMenu                       matlab.ui.container.Menu
+        DeleteMenu                      matlab.ui.container.Menu
+        InsertdatapointsMenu            matlab.ui.container.Menu
         InvertMenu                      matlab.ui.container.Menu
         InvertXdirectionMenu            matlab.ui.container.Menu
         InvertYdirectionMenu            matlab.ui.container.Menu
@@ -132,6 +134,10 @@ classdef MotionAnalyser < matlab.apps.AppBase
         FillcolorMenu_2                 matlab.ui.container.Menu
         LinethicknessMenu_2             matlab.ui.container.Menu
         SegmentationdensityMenu         matlab.ui.container.Menu
+        AnimationMenu_3                 matlab.ui.container.Menu
+        KeeptraceMenu                   matlab.ui.container.Menu
+        OnMenu                          matlab.ui.container.Menu
+        OffMenu                         matlab.ui.container.Menu
         SignalprocessingMenu            matlab.ui.container.Menu
         TemporalresolutionMenu_2        matlab.ui.container.Menu
         FiltersMenu                     matlab.ui.container.Menu
@@ -347,14 +353,14 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Browse
         file % name of the imported file as element name
-        path % importation path 
+        path % importation path
         Table % imported data table
         header % imported headers
-        
+
         % cell arrays for coordinates
         e; % defines the element number or numbers to use
         te = 0; % total number of elements
-        ElementName; % name of the differents elements 
+        ElementName; % name of the differents elements
         name = {}; % name for the different POI (xPoI, yPOI)
         colname = {} % name for each POI
         colname_old = {}; % bkp
@@ -426,8 +432,9 @@ classdef MotionAnalyser < matlab.apps.AppBase
         idxPOI = ':'; % index of the POI to plot single curves in kinematic, default is all
         NormalisedTo = 1;
         SinglePOI % to select which POI to plot in a single curve
-        SelectedOptionIndex % dialogue menu: variable returned upon selectrion of a POI        
+        SelectedOptionIndex % dialogue menu: variable returned upon selectrion of a POI
         format; % export format
+        TypeCurve = []; % type of curve plotted
 
         % Variables to plot kinematics
         A_kine % A transfer variable for kinematic plot function, no need to save
@@ -450,6 +457,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         zPosition = {}; % Abitrary value for interlimb distance
         SegDens = 1; % defines segment density for stick diagram (number of raws used)
         backgroundC = [1 1 1]; % defines the color of the plot background
+        Keeptrace = 0; % to keep or erase the previous trace during animation
 
         % Variable for gait analyses
         XStep;
@@ -617,7 +625,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                                 plot3 (app.UIAxes, app.X{app.e(k)}(:,idx), app.Y{app.e(k)}(:,idx), app.Z{app.e(k)}(:,idx));
                             end
                             axis(app.UIAxes, 'equal');
-                            legend (app.UIAxes, app.colname{app.e(k)}(:,idx));                            
+                            legend (app.UIAxes, app.colname{app.e(k)}(:,idx));
                             Axes1_12Settings(app)
 
                         case "Trajectory"
@@ -626,7 +634,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                             end
                             axis(app.UIAxes, 'equal');
                             % app.UIAxes.DataAspectRatio = [1 1 1];
-                            legend (app.UIAxes, app.colname{app.e(k)});                            
+                            legend (app.UIAxes, app.colname{app.e(k)});
                             Axes1_12Settings(app)
 
                         case "Stick diagram"
@@ -837,7 +845,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                                 scroll(app.UITable1,'row', app.n29)
                                 removeStyle(app.UITable1)
                                 s= uistyle("BackgroundColor",[0.8 0.7 0.8]);
-                                addStyle(app.UITable1,s,"row",app.n29);                                
+                                addStyle(app.UITable1,s,"row",app.n29);
                             end
                             app.PositionSlider.Value = app.n29;
                             app.n6 = 0;
@@ -1034,21 +1042,21 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     app.SelectedOptionIndex = [];
                     answer1 = get(Dropdown1, 'Value');
                     answer2  = get(Dropdown2, 'Value');
-                    %app.SelectedOptionIndex = [a,b];                   
+                    %app.SelectedOptionIndex = [a,b];
 
                     % Close the dialog box
                     delete(dlg);
 
                     if answer1 == 1
-                            app.AngleUnit = 'Degrees';
-                        else
-                            app.AngleUnit = 'Radians';
+                        app.AngleUnit = 'Degrees';
+                    else
+                        app.AngleUnit = 'Radians';
                     end
 
                     if answer2 == 1
-                            app.AbsoluteValue = "Yes";
-                        else
-                            app.AbsoluteValue = "No";
+                        app.AbsoluteValue = "Yes";
+                    else
+                        app.AbsoluteValue = "No";
                     end
                 else
                 end
@@ -1080,19 +1088,19 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     app.dZ{app.e} = NaN(size(app.dX{app.e}));
                     app.dXZ{app.e} = NaN(size(app.dX{app.e}));
                     app.dYZ{app.e} = NaN(size(app.dX{app.e}));
-                    app.dXYZ{app.e} = NaN(size(app.dX{app.e}));                    
+                    app.dXYZ{app.e} = NaN(size(app.dX{app.e}));
                 else
                     % if Z is real, calculate the other distances
                     app.dXZ{app.e} = sqrt(app.dX{app.e}.^2 + app.dZ{app.e}.^2); % calculates dxz
                     app.dYZ{app.e} = sqrt(app.dY{app.e}.^2 + app.dZ{app.e}.^2); % calculates dyz
                     app.dXYZ{app.e} = sqrt(app.dX{app.e}.^2 + app.dY{app.e}.^2 + app.dZ{app.e}.^2);
-                end                
+                end
 
                 % Calculate descriptive statistics for the distance and copy
                 % them in a single cell array of {app.e,n}
                 dx = rmmissing(app.dX{app.e}); % remove NaN so that satistics can be calculated
                 app.DistanceStat {app.e,1} = min(dx);
-                app.DistanceStat {app.e,2} = max(dx);                
+                app.DistanceStat {app.e,2} = max(dx);
                 app.DistanceStat {app.e,3} = mean(dx);
                 app.DistanceStat {app.e,4} = median(dx);
                 app.DistanceStat {app.e,5} = sum(dx);
@@ -1138,7 +1146,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     app.DistanceStat {app.e,32} = max(dxyz);
                     app.DistanceStat {app.e,33} = mean(dxyz);
                     app.DistanceStat {app.e,34} = median(dxyz);
-                    app.DistanceStat {app.e,35} = sum(dxyz);  
+                    app.DistanceStat {app.e,35} = sum(dxyz);
                 else
                     % fill the cell arrays with NaN so that there is no
                     % problem when quering the data in the stat tab
@@ -1149,30 +1157,30 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
                     for i = 21:35
                         app.DistanceStat{app.e, i} = a;
-                    end 
+                    end
                 end
                 %% Speed
-
                 waitbar(0.4,wb,'Calculating speed');
 
                 dt = diff(app.T{app.e});
+                t = app.T{app.e};
+                [app.VX{app.e}, ~] = gradient(app.X{app.e}', t, 1);
+                app.VX{app.e} = app.VX{app.e}';
+                [app.VY{app.e}, ~] = gradient(app.Y{app.e}', t, 1);
+                app.VY{app.e} = app.VY{app.e}';
+                [app.VZ{app.e}, ~] = gradient(app.Z{app.e}', t, 1);
+                app.VZ{app.e} = app.VZ{app.e}';
+                app.VXY{app.e} = sqrt(app.VX{app.e}.^2 + app.VY{app.e}.^2);
+                app.VXZ{app.e} = sqrt(app.VX{app.e}.^2 + app.VZ{app.e}.^2);
+                app.VYZ{app.e} = sqrt(app.VZ{app.e}.^2 + app.VY{app.e}.^2);
+                app.VXYZ{app.e} = sqrt(app.VX{app.e}.^2 + ...
+                    app.VY{app.e}.^2 + app.VZ{app.e}.^2);
+
                 if app.AbsoluteValue == "Yes"
-                    app.VX{app.e} = abs(app.dX{app.e}./dt);
-                    app.VY{app.e} = abs(app.dY{app.e}./dt);
-                    app.VZ{app.e} = abs(app.dZ{app.e}./dt);
-                    app.VXY{app.e} = abs(app.dXY{app.e}./dt);
-                    app.VXZ{app.e} = abs(app.dXZ{app.e}./dt);
-                    app.VYZ{app.e} = abs(app.dYZ{app.e}./dt);
-                    app.VXYZ{app.e}= abs(app.dXYZ{app.e}./dt);
-                elseif app.AbsoluteValue == "No"
-                    app.VX{app.e} = app.dX{app.e}./dt;
-                    app.VY{app.e} = app.dY{app.e}./dt;
-                    app.VZ{app.e} = app.dZ{app.e}./dt;
-                    app.VXY{app.e} = app.dXY{app.e}./dt;
-                    app.VXZ{app.e} = app.dXZ{app.e}./dt;
-                    app.VYZ{app.e} = app.dYZ{app.e}./dt;
-                    app.VXYZ{app.e}= app.dXYZ{app.e}./dt;
-                end                                
+                    app.VX{app.e} = abs(app.VX{app.e});
+                    app.VY{app.e} = abs(app.VY{app.e});
+                    app.VZ{app.e} = abs(app.VZ{app.e});
+                end
 
                 % stats on vx
                 vx = rmmissing(app.VX{app.e});
@@ -1240,17 +1248,17 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
                     for i = 21:35
                         app.VelocityStat{app.e, i} = a;
-                    end 
+                    end
                 end
-                %% Acceleration                
+                %% Acceleration
                 if app.AbsoluteValue == "Yes"
-                    app.AX{app.e} = abs(diff(app.VX{app.e})./dt(2:end,:));
-                    app.AY{app.e} = abs(diff(app.VY{app.e})./dt(2:end,:));
-                    app.AZ{app.e} = abs(diff(app.VZ{app.e})./dt(2:end,:));
-                    app.AXY{app.e} = abs(diff(app.VXY{app.e})./dt(2:end,:));
-                    app.AXZ{app.e} = abs(diff(app.VXZ{app.e})./dt(2:end,:));
-                    app.AYZ{app.e} = abs(diff(app.VYZ{app.e})./dt(2:end,:));
-                    app.AXYZ{app.e}= abs(diff(app.VXYZ{app.e})./dt(2:end,:));
+                    app.AX{app.e} = abs(diff(app.VX{app.e})./dt(1:end,:));
+                    app.AY{app.e} = abs(diff(app.VY{app.e})./dt(1:end,:));
+                    app.AZ{app.e} = abs(diff(app.VZ{app.e})./dt(1:end,:));
+                    app.AXY{app.e} = abs(diff(app.VXY{app.e})./dt(1:end,:));
+                    app.AXZ{app.e} = abs(diff(app.VXZ{app.e})./dt(1:end,:));
+                    app.AYZ{app.e} = abs(diff(app.VYZ{app.e})./dt(1:end,:));
+                    app.AXYZ{app.e}= abs(diff(app.VXYZ{app.e})./dt(1:end,:));
                 elseif app.AbsoluteValue == "No"
                     app.AX{app.e} = diff(app.VX{app.e})./dt(2:end,:);
                     app.AY{app.e} = diff(app.VY{app.e})./dt(2:end,:);
@@ -1259,10 +1267,10 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     app.AXZ{app.e} = diff(app.VXZ{app.e})./dt(2:end,:);
                     app.AYZ{app.e} = diff(app.VYZ{app.e})./dt(2:end,:);
                     app.AXYZ{app.e}= diff(app.VXYZ{app.e})./dt(2:end,:);
-                end    
+                end
 
                 % stats on AX
-                ax = rmmissing(app.AX{app.e});                
+                ax = rmmissing(app.AX{app.e});
                 app.AccelerationStat {app.e,1} = min(ax);
                 app.AccelerationStat {app.e,2} = max(ax);
                 app.AccelerationStat {app.e,3} = mean(ax);
@@ -1270,7 +1278,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 app.AccelerationStat {app.e,5} = mode(nearest(ax));
 
                 % stats on AY
-                ay = rmmissing(app.AY{app.e}); 
+                ay = rmmissing(app.AY{app.e});
                 app.AccelerationStat {app.e,6} = min(ay);
                 app.AccelerationStat {app.e,7} = max(ay);
                 app.AccelerationStat {app.e,8} = mean(ay);
@@ -1278,14 +1286,14 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 app.AccelerationStat {app.e,10} = mode(nearest(ay));
 
                 % stats on AXY
-                axy = rmmissing(app.AXY{app.e}); 
+                axy = rmmissing(app.AXY{app.e});
                 app.AccelerationStat {app.e,16} = min(axy);
                 app.AccelerationStat {app.e,17} = max(axy);
                 app.AccelerationStat {app.e,18} = mean(axy);
                 app.AccelerationStat {app.e,19} = median(axy);
                 app.AccelerationStat {app.e,20} = mode(nearest(axy));
 
-                if app.Arb_Z == 0 % if the Z matrix is real                    
+                if app.Arb_Z == 0 % if the Z matrix is real
 
                     % stats on AZ
                     az = rmmissing(app.AZ{app.e});
@@ -1318,7 +1326,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     app.AccelerationStat {app.e,33} = mean(axyz);
                     app.AccelerationStat {app.e,34} = median(axyz);
                     app.AccelerationStat {app.e,35} = mode(nearest(axyz));
-                    
+
                 else
                     % fill the cell arrays with NaN so that there is no
                     % problem when quering the data in the stat tab
@@ -1328,8 +1336,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     end
 
                     for i = 21:35
-                        app.AccelerationStat{app.e, i} = a;  
-                    end  
+                        app.AccelerationStat{app.e, i} = a;
+                    end
                 end
 
                 waitbar(0.5,wb,'Calculating angle');
@@ -1633,7 +1641,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             if numel(app.X) >=1 && ~isempty(app.e)
                 % update element table 1
                 app.UITableElement.Data = cellstr(app.ElementName);
-               
+
 
                 % update element table 2
                 app.UITableElement_2.Data = cellstr(app.ElementName);
@@ -1647,7 +1655,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 app.ElementDropDownX_2.Items = app.ElementName;
                 app.ElementDropDownY.Items = app.ElementName;
                 app.ElementDropDown.Items = app.ElementName;
-            else                
+            else
             end
         end
 
@@ -1828,9 +1836,6 @@ classdef MotionAnalyser < matlab.apps.AppBase
             % Background color
             ApplyBackgroundC(app)
 
-            % legend background
-            app.UIAxes.Legend.Color = [0.9 0.9 0.9];
-           
             % show or hide axis labels for the coordinate and animation tabs
             if app.xaxis == "on"
                 xlabel(app.UIAxes, 'X');
@@ -1849,6 +1854,12 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 zlabel(app.UIAxes12, 'Z');
             else
             end
+
+            % legend background
+            if ~isempty(isgraphics(app.UIAxes.Legend))
+                app.UIAxes.Legend.Color = [0.9 0.9 0.9];
+            end
+
 
         end
 
@@ -2503,7 +2514,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         end
 
         function CleanKinematicPlots = CleanKinematicPlots(app) %#ok<STOUT>
-                       
+
             if isempty(app.dX)
                 AnalyseKinematic(app)
             elseif numel(app.dX) == numel(app.X)
@@ -2521,7 +2532,16 @@ classdef MotionAnalyser < matlab.apps.AppBase
         end
 
         function PlotKinematics = PlotKinematics(app) %#ok<STOUT>
-            % plot speed vs time
+            
+            % make sure the number of points is identical in the matrixes
+            % and if not adjust the size:
+            if length(app.K_time) > length(app.A_kine)
+                app.K_time = app.K_time(1:end-1);
+            elseif length(app.A_kine) > length(app.K_time)
+                app.A_kine = app.A_kine(1:end-1);
+            end
+
+            % plot amplitude vs time
             plot (app.UIAxes2, app.K_time, app.A_kine);
             legend(app.UIAxes2, app.K_colname, 'Location','southoutside',"Orientation","horizontal", 'NumColumns',3,"Box","off");
             title(app.UIAxes2, [app.K_title,' variation']);
@@ -2557,11 +2577,35 @@ classdef MotionAnalyser < matlab.apps.AppBase
             % data the users wants to filter
 
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
+            app.Signal = [];
+            app.SignalFreq = [];
+            app.tSignal = [];
 
             if selectedTab == app.CoordinatesTab % Check if the selected tab is CoordinatesTab
                 app.Signal = [app.X{app.e}, app.Y{app.e}, app.Z{app.e}];
                 app.SignalFreq = 1/(mean(diff(app.T{app.e}))); % mean sampling rate
                 app.tSignal = app.T{app.e};
+
+            elseif selectedTab == app.KinematicTab
+                if app.TypeCurve == "Position"
+                    msgbox('This function is not yet available for the position')
+                elseif app.TypeCurve == "Distance"
+                    msgbox('This function is not yet available for the distance')
+                elseif app.TypeCurve == "Speed"                 
+                    app.Signal = [app.VX{app.e}, app.VY{app.e}, app.VZ{app.e}, app.VXY{app.e}, app.VXZ{app.e}, app.VYZ{app.e}, app.VXYZ{app.e}];
+                    app.SignalFreq = 1/(mean(diff(app.T{app.e}))); % mean sampling rate
+                    app.tSignal = app.T{app.e};
+                elseif app.TypeCurve == "Acceleration"
+                    app.Signal = [app.AX{app.e}, app.AY{app.e}, app.AZ{app.e}, app.AXY{app.e}, app.AXZ{app.e}, app.AYZ{app.e}, app.AXYZ{app.e}];
+                    app.SignalFreq = 1/(mean(diff(app.T{app.e}))); % mean sampling rate
+                    app.tSignal = app.T{app.e};
+                elseif app.TypeCurve == "Angle variation"
+                    msgbox('This function is not yet available for the distance')                    
+                elseif app.TypeCurve == "Angular speed"
+                    msgbox('This function is not yet available for the distance')
+                elseif app.TypeCurve == "Angular acceleration"
+                    msgbox('This function is not yet available for the distance')
+                end
 
             elseif selectedTab == app.EphysTab % Check if the selected tab is EMGTab
                 app.Signal = app.fEMG;
@@ -2586,17 +2630,93 @@ classdef MotionAnalyser < matlab.apps.AppBase
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
 
             % Check if the selected tab is the "CoordinatesTab, EMGTab or SensorTab"
-            if selectedTab == app.CoordinatesTab % Check if the selected tab is CoordinatesTab                
+            if selectedTab == app.CoordinatesTab % Check if the selected tab is CoordinatesTab
                 m = app.nPOI{app.e}; % number of POI
                 app.X{app.e} = app.Signal(1:end, 1:m);
                 app.Y{app.e} = app.Signal(1:end, (m+1):(2*m));
                 app.Z{app.e} = app.Signal(1:end, (2*m+1):end);
-                app.T{app.e} = app.tSignal;
+                app.T{app.e} = app.tSignal;  
 
-                % Update
-                updateplot(app);
-                UpdateTable (app);
-                UpdateAnimStep(app);
+            elseif selectedTab == app.KinematicTab
+                if app.TypeCurve == "Position"
+                    m = app.nPOI{app.e}; % number of POI
+                    app.dX{app.e} = app.Signal(1:end, 1:m);
+                    app.dY{app.e} = app.Signal(1:end, (m+1):(2*m));
+                    app.dZ{app.e} = app.Signal(1:end, (2*m+1):(3*m));
+                    app.dXY{app.e} = app.Signal(1:end, (3*m+1):(4*m));
+                    app.dXZ{app.e} = app.Signal(1:end, (4*m+1):(5*m));
+                    app.dYZ{app.e} = app.Signal(1:end, (5*m+1):(6*m));
+                    app.dXYZ{app.e} = app.Signal(1:end, (6*m+1):end);
+                    app.T{app.e} = app.tSignal;
+
+                    % Update
+                    updateplot(app); UpdateTable (app); UpdateAnimStep(app);
+
+                elseif app.TypeCurve == "Distance"
+                    m = app.nPOI{app.e}; % number of POI
+                    app.dX{app.e} = app.Signal(1:end, 1:m);
+                    app.dY{app.e} = app.Signal(1:end, (m+1):(2*m));
+                    app.dZ{app.e} = app.Signal(1:end, (2*m+1):(3*m));
+                    app.dXY{app.e} = app.Signal(1:end, (3*m+1):(4*m));
+                    app.dXZ{app.e} = app.Signal(1:end, (4*m+1):(5*m));
+                    app.dYZ{app.e} = app.Signal(1:end, (5*m+1):(6*m));
+                    app.dXYZ{app.e} = app.Signal(1:end, (6*m+1):end);
+                    app.T{app.e} = app.tSignal;
+                    % replot
+                    PlotDistance (app)
+
+                elseif app.TypeCurve == "Speed"
+                    m = app.nPOI{app.e}; % number of POI
+                    app.VX{app.e} = app.Signal(1:end, 1:m);
+                    app.VY{app.e} = app.Signal(1:end, (m+1):(2*m));
+                    app.VZ{app.e} = app.Signal(1:end, (2*m+1):(3*m));
+                    app.VXY{app.e} = app.Signal(1:end, (3*m+1):(4*m));
+                    app.VXZ{app.e} = app.Signal(1:end, (4*m+1):(5*m));
+                    app.VYZ{app.e} = app.Signal(1:end, (5*m+1):(6*m));
+                    app.VXYZ{app.e} = app.Signal(1:end, (6*m+1):end);
+                    app.T{app.e} = app.tSignal;
+                    %replot
+                    PlotSpeed (app)
+                   
+                elseif app.TypeCurve == "Acceleration"
+                    m = app.nPOI{app.e}; % number of POI
+                    app.AX{app.e} = app.Signal(1:end, 1:m);
+                    app.AY{app.e} = app.Signal(1:end, (m+1):(2*m));
+                    app.AZ{app.e} = app.Signal(1:end, (2*m+1):(3*m));
+                    app.AXY{app.e} = app.Signal(1:end, (3*m+1):(4*m));
+                    app.AXZ{app.e} = app.Signal(1:end, (4*m+1):(5*m));
+                    app.AYZ{app.e} = app.Signal(1:end, (5*m+1):(6*m));
+                    app.AXYZ{app.e} = app.Signal(1:end, (6*m+1):end);
+                    app.T{app.e} = app.tSignal;
+                    % replot
+                    PlotAcceleration (app)
+
+                elseif app.TypeCurve == "Angle variation"
+                    m = app.nPOI{app.e}; % number of POI
+                    app.AnglesXY{app.e} = app.Signal(1:end, 1:m);
+                    app.AnglesXZ{app.e} = app.Signal(1:end, (m+1):(2*m));
+                    app.AnglesYZ{app.e} = app.Signal(1:end, (2*m+1):(3*m));                    
+                    app.T{app.e} = app.tSignal;
+                    % replot
+                    PlotAngle (app)
+                elseif app.TypeCurve == "Angular speed"
+                    m = app.nPOI{app.e}; % number of POI
+                    app.AngVeloc_XY{app.e} = app.Signal(1:end, 1:m);
+                    app.AngVeloc_XZ{app.e} = app.Signal(1:end, (m+1):(2*m));
+                    app.AngVeloc_YZ{app.e} = app.Signal(1:end, (2*m+1):(3*m));                    
+                    app.T{app.e} = app.tSignal;
+                    % replot
+                    PlotAngleVelocity (app)
+
+                elseif app.TypeCurve == "Angular acceleration"
+                    m = app.nPOI{app.e}; % number of POI
+                    app.AngAcc_XY{app.e} = app.Signal(1:end, 1:m);
+                    app.AngAcc_XZ{app.e} = app.Signal(1:end, (m+1):(2*m));
+                    app.AngAcc_YZ{app.e} = app.Signal(1:end, (2*m+1):(3*m));                    
+                    app.T{app.e} = app.tSignal;
+                    % replot
+                    PlotAngleAcceleration (app)
+                end
 
             elseif selectedTab == app.EphysTab % Check if the selected tab is EMGTab
                 app.fEMG = app.Signal;
@@ -2736,7 +2856,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % normalized cutoff frequency
                 [F, E] = butter(order, Wp, 'low');
 
-                % Apply the filter to the EMG signal in both forward and reverse directions
+                % Apply the filter to the signal in both forward and reverse directions
                 % to eliminate phase distortion and obtain a zero-phase response
                 filter = filtfilt(F, E, app.Signal);
                 app.Signal = filter;
@@ -3553,7 +3673,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
             end
         end
-        
+
         function Browse = Browse(app) %#ok<STOUT>
             app.Table = [];
             app.file = [];
@@ -3564,7 +3684,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             else
                 [app.file, filepath] = uigetfile(fullfile(app.path, '*.csv;*.txt;*.xls;*.xlsx'), 'Select a File');
                 app.path = filepath;
-            end 
+            end
             if isequal(app.file,0)
                 % User clicked the "Cancel" button
                 return
@@ -3573,26 +3693,180 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 app.MotionAnalyserUIFigure.WindowStyle = 'normal';
 
                 app.Table = readtable((fullfile(app.path, app.file))); % import file into table
-                app.header = app.Table.Properties.VariableNames; % extract column names                
+                app.header = app.Table.Properties.VariableNames; % extract column names
 
                 % Set the app window as the current figure to prevent the app
                 % from going to the back
                 figure(app.MotionAnalyserUIFigure);
-            end      
+            end
+        end
+
+        function ApplyBackgroundC = ApplyBackgroundC(app) %#ok<MANU>
+            % Set the background color of the UIFigure
+            app.UIAxes.Color = app.backgroundC;
+            app.UIAxes12.Color = app.backgroundC;
+            app.UIAxes2.Color = app.backgroundC;
+            app.UIAxes3.Color = app.backgroundC;
+            app.UIAxes4.Color = app.backgroundC;
+            app.UIAxes5.Color = app.backgroundC;
+            app.UIAxesEMG.Color = app.backgroundC;
+            app.UIAxesSensor.Color = app.backgroundC;
+            app.UIAxes14.Color = app.backgroundC;
+            app.UIAxes13.Color = app.backgroundC;
         end
         
-        function ApplyBackgroundC = ApplyBackgroundC(app) %#ok<MANU>
-                % Set the background color of the UIFigure
-                    app.UIAxes.Color = app.backgroundC;
-                    app.UIAxes12.Color = app.backgroundC;
-                    app.UIAxes2.Color = app.backgroundC;
-                    app.UIAxes3.Color = app.backgroundC;
-                    app.UIAxes4.Color = app.backgroundC;
-                    app.UIAxes5.Color = app.backgroundC;
-                    app.UIAxesEMG.Color = app.backgroundC;
-                    app.UIAxesSensor.Color = app.backgroundC;
-                    app.UIAxes14.Color = app.backgroundC;
-                    app.UIAxes13.Color = app.backgroundC;            
+        function SelectElement = SelectElement(app) %#ok<STOUT>
+            % Define the options for the dropdown menu
+            options = app.ElementName;
+
+            % Get the screen size
+            screensize = get(groot, 'Screensize');
+
+            % Define the position and size of the dialog box
+            width = 250;
+            height = 150;
+            left = screensize(3)/2 - width/2;
+            bottom = screensize(4)/2 - height/2;
+            position = [left, bottom, width, height];
+
+            % Create a dialog box with a dropdown menu
+            dlg = dialog('Name', 'Select an Element', 'Position', position);
+            dropdown = uicontrol(dlg, 'Style', 'popupmenu', 'String', options, 'Position', [50, 75, 150, 25]);
+
+            % Add a push button to the dialog box
+            uicontrol(dlg, 'Style', 'pushbutton', 'String', 'OK', 'Position', [50, 25, 150, 25], 'Callback', 'uiresume(gcbf)');
+
+            % Wait for the user to close the dialog box
+            uiwait(dlg);
+
+            % Get the index of the selected option from the dropdown menu
+            app.SelectedOptionIndex = [];
+            app.SelectedOptionIndex = get(dropdown, 'Value');
+
+            % Close the dialog box
+            delete(dlg);            
+        end
+        
+        function PlotSpeed = PlotSpeed(app)
+             % Situations defined by user
+                if app.DropDownView.Value == "X"
+                    % x-speed
+                    app.A_kine = app.VX{app.e}(1:end,app.idxPOI);
+                    app.B_kine = [app.VelocityStat{app.e,1}(1:end,app.idxPOI); app.VelocityStat{app.e,2}(1:end,app.idxPOI); app.VelocityStat{app.e,3}(1:end,app.idxPOI); app.VelocityStat{app.e,4}(1:end,app.idxPOI); app.VelocityStat{app.e,5}(1:end,app.idxPOI)];
+                    PlotKinematics(app)
+
+                elseif app.DropDownView.Value == "Y"
+                    % y-speed
+                    app.A_kine = app.VY{app.e}(1:end,app.idxPOI);
+                    app.B_kine = [app.VelocityStat{app.e,6}(1:end,app.idxPOI); app.VelocityStat{app.e,7}(1:end,app.idxPOI); app.VelocityStat{app.e,8}(1:end,app.idxPOI); app.VelocityStat{app.e,9}(1:end,app.idxPOI); app.VelocityStat{app.e,10}(1:end,app.idxPOI)];
+                    PlotKinematics(app)
+
+                elseif app.DropDownView.Value == 'Z'
+                    if app.Arb_Z == 0 % if the Z matrix has real values
+                        % z-speed
+                        app.A_kine  = app.VZ{app.e}(1:end,app.idxPOI);
+                        app.B_kine = [app.VelocityStat{app.e,11}(1:end,app.idxPOI); app.VelocityStat{app.e,12}(1:end,app.idxPOI); app.VelocityStat{app.e,13}(1:end,app.idxPOI); app.VelocityStat{app.e,14}(1:end,app.idxPOI); app.VelocityStat{app.e,15}(1:end,app.idxPOI)];
+                        PlotKinematics(app)
+                    else
+                        msgbox ('No real Z series in this recording')
+                    end
+
+                elseif app.DropDownView.Value == "XY"
+                    % XY-speed
+                    app.A_kine  = app.VXY{app.e}(1:end,app.idxPOI);
+                    app.B_kine = [app.VelocityStat{app.e,16}(1:end,app.idxPOI); app.VelocityStat{app.e,17}(1:end,app.idxPOI); app.VelocityStat{app.e,18}(1:end,app.idxPOI); app.VelocityStat{app.e,19}(1:end,app.idxPOI); app.VelocityStat{app.e,20}(1:end,app.idxPOI)];
+                    PlotKinematics(app)
+
+                elseif app.DropDownView.Value == "XZ"
+                    if app.Arb_Z == 0 % if the Z matrix has real values
+                        % XZ-speed
+                        app.A_kine  = app.VXZ{app.e}(1:end,app.idxPOI);
+                        app.B_kine = [app.VelocityStat{app.e,21}(1:end,app.idxPOI); app.VelocityStat{app.e,22}(1:end,app.idxPOI); app.VelocityStat{app.e,23}(1:end,app.idxPOI); app.VelocityStat{app.e,24}(1:end,app.idxPOI); app.VelocityStat{app.e,25}(1:end,app.idxPOI)];
+                        PlotKinematics(app)
+                    else
+                        msgbox ('No real Z series in this recording')
+                    end
+                elseif app.DropDownView.Value == "YZ"
+                    if app.Arb_Z == 0 % if the Z matrix has real values
+                        % YZ-speed
+                        app.A_kine  = app.VYZ{app.e}(1:end,app.idxPOI);
+                        app.B_kine = [app.VelocityStat{app.e,26}(1:end,app.idxPOI); app.VelocityStat{app.e,27}(1:end,app.idxPOI); app.VelocityStat{app.e,28}(1:end,app.idxPOI); app.VelocityStat{app.e,29}(1:end,app.idxPOI); app.VelocityStat{app.e,30}(1:end,app.idxPOI)];
+                        PlotKinematics(app)
+                    else
+
+                    end
+                elseif app.DropDownView.Value == "XYZ"
+                    if app.Arb_Z == 0 % if the Z matrix has real values
+                        % XYZ-speed
+                        app.A_kine  = app.VXYZ{app.e}(1:end,app.idxPOI);
+                        app.B_kine = [app.VelocityStat{app.e,31}(1:end,app.idxPOI); app.VelocityStat{app.e,32}(1:end,app.idxPOI); app.VelocityStat{app.e,33}(1:end,app.idxPOI); app.VelocityStat{app.e,34}(1:end,app.idxPOI); app.VelocityStat{app.e,35}(1:end,app.idxPOI)];
+                        PlotKinematics(app)
+                    else
+                        msgbox('No real Z series in this recording')
+                    end
+                end
+        end
+        
+        function PlotAcceleration = PlotAcceleration(app) %#ok<STOUT>
+             % Situations defined by user
+                if app.DropDownView.Value == "X"
+                    app.A_kine = app.AX{app.e}(1:end,app.idxPOI);
+                    app.B_kine = [app.AccelerationStat{app.e,1}(1:end,app.idxPOI); app.AccelerationStat{app.e,2}(1:end,app.idxPOI); app.AccelerationStat{app.e,3}(1:end,app.idxPOI); app.AccelerationStat{app.e,4}(1:end,app.idxPOI); app.AccelerationStat{app.e,5}(1:end,app.idxPOI)];
+                    PlotKinematics(app)
+
+                elseif app.DropDownView.Value == "Y"
+                    app.A_kine = app.AY{app.e}(1:end,app.idxPOI);
+                    app.B_kine = [app.AccelerationStat{app.e,6}(1:end,app.idxPOI); app.AccelerationStat{app.e,7}(1:end,app.idxPOI); app.AccelerationStat{app.e,8}(1:end,app.idxPOI); app.AccelerationStat{app.e,9}(1:end,app.idxPOI); app.AccelerationStat{app.e,10}(1:end,app.idxPOI)];
+                    PlotKinematics(app)
+
+                elseif app.DropDownView.Value == "Z"
+                    if app.Arb_Z == 0 % if the Z matrix has real values
+                        app.A_kine  = app.AZ{app.e}(1:end,app.idxPOI);
+                        app.B_kine = [app.AccelerationStat{app.e,11}(1:end,app.idxPOI); app.AccelerationStat{app.e,12}(1:end,app.idxPOI); app.AccelerationStat{app.e,13}(1:end,app.idxPOI); app.AccelerationStat{app.e,14}(1:end,app.idxPOI); app.AccelerationStat{app.e,15}(1:end,app.idxPOI)];
+                        PlotKinematics(app)
+                    else
+                        msgbox ('No real Z series in this recording')
+                    end
+
+                elseif app.DropDownView.Value == "XY"
+                    app.A_kine  = app.AXY{app.e}(1:end,app.idxPOI);
+                    app.B_kine = [app.AccelerationStat{app.e,16}(1:end,app.idxPOI); app.AccelerationStat{app.e,17}(1:end,app.idxPOI); app.AccelerationStat{app.e,18}(1:end,app.idxPOI); app.AccelerationStat{app.e,19}(1:end,app.idxPOI); app.AccelerationStat{app.e,20}(1:end,app.idxPOI)];
+                    PlotKinematics(app)
+
+                elseif app.DropDownView.Value == "XZ"
+                    if app.Arb_Z == 0 % if the Z matrix has real values
+                        app.A_kine  = app.AXZ{app.e}(1:end,app.idxPOI);
+                        app.B_kine = [app.AccelerationStat{app.e,21}(1:end,app.idxPOI); app.AccelerationStat{app.e,22}(1:end,app.idxPOI); app.AccelerationStat{app.e,23}(1:end,app.idxPOI); app.AccelerationStat{app.e,24}(1:end,app.idxPOI); app.AccelerationStat{app.e,25}(1:end,app.idxPOI)];
+                        PlotKinematics(app)
+                    else
+                        msgbox ('No real Z series in this recording')
+                    end
+                elseif app.DropDownView.Value == "YZ"
+                    if app.Arb_Z == 0 % if the Z matrix has real values
+                        app.A_kine  = app.AYZ{app.e}(1:end,app.idxPOI);
+                        app.B_kine = [app.AccelerationStat{app.e,26}(1:end,app.idxPOI); app.AccelerationStat{app.e,27}(1:end,app.idxPOI); app.AccelerationStat{app.e,28}(1:end,app.idxPOI); app.AccelerationStat{app.e,29}(1:end,app.idxPOI); app.AccelerationStat{app.e,30}(1:end,app.idxPOI)];
+                        PlotKinematics(app)
+                    else
+
+                    end
+                elseif app.DropDownView.Value == "XYZ"
+                    if app.Arb_Z == 0 % if the Z matrix has real values
+                        % XYZ-speed
+                        app.A_kine  = app.AXYZ{app.e}(1:end,app.idxPOI);
+                        app.B_kine = [app.AccelerationStat{app.e,31}(1:end,app.idxPOI); app.AccelerationStat{app.e,32}(1:end,app.idxPOI); app.AccelerationStat{app.e,33}(1:end,app.idxPOI); app.AccelerationStat{app.e,34}(1:end,app.idxPOI); app.AccelerationStat{app.e,35}(1:end,app.idxPOI)];
+                        PlotKinematics(app)
+                    else
+                        msgbox('No real Z series in this recording')
+                    end
+                end
+            
+        end
+        
+        function CheckNaN = CheckNaN(app) %#ok<STOUT>           
+            
+            if any(isnan(app.T{app.e})) | any(isnan(app.X{app.e})) | any(isnan(app.Y{app.e})) | any(isnan(app.Z{app.e}))
+                msgbox('Some functions of the program will not work with NaN values. Please use the interpolation functions to replace these NaN values.', 'Heads Up');
+            end
         end
     end
 
@@ -3628,6 +3902,9 @@ classdef MotionAnalyser < matlab.apps.AppBase
         % Button pushed function: DistanceButton
         function DistanceButtonPushed(app, event)
             CleanKinematicPlots(app)
+            % this does not use the same code as the other kinematics
+            % parameters because it plot dx, dy and dz on the same panel
+
             if numel(app.dX) >=1
                 plot (app.UIAxes2, app.T{app.e}(2:end,:), app.dX{app.e}(1:end,app.idxPOI)); % app.idxPOI allows to choose which point to display
                 title(app.UIAxes2, 'x-distance');
@@ -3849,50 +4126,50 @@ classdef MotionAnalyser < matlab.apps.AppBase
         function AnimateButtonPushed(app, event)
             rotate3d(app.UIAxes12, 'on'); % Enable 3D rotation for app.UIAxes
             if numel(app.X) >=1
-                    if all(cell2mat(app.nPOI(app.e(:))) > 2)
+                if all(cell2mat(app.nPOI(app.e(:))) > 2)
 
-                        lines = cell(size((app.XAnim{app.e(1)}), 1), size(app.e, 2));
+                    lines = cell(size((app.XAnim{app.e(1)}), 1), size(app.e, 2));
 
-                        cla(app.UIAxes12,'reset')
-                        cmap = get(app.UIAxes12,'defaultAxesColorOrder');
+                    cla(app.UIAxes12,'reset')
+                    cmap = get(app.UIAxes12,'defaultAxesColorOrder');
 
-                        % plot all segments
-                        axis(app.UIAxes12, 'auto')
-                        hold(app.UIAxes12, 'on')
+                    % plot all segments
+                    axis(app.UIAxes12, 'auto')
+                    hold(app.UIAxes12, 'on')
 
-                        for k=1:size(app.e, 2)
-                            lines(:, k) = num2cell(plot3(app.UIAxes12, app.XAnim{app.e(k)}', app.YAnim{app.e(k)}', app.Z{app.e(k)}', ...
-                                'Color', cmap(k, :), 'Marker', app.Mtype, "MarkerEdgeColor",app.MarkerEdgeColor, ...
-                                "MarkerFaceColor", app.MarkerFaceColor, "MarkerSize", app.Msize, "LineWidth", app.LineThickness));
-                        end
-                        app.UIAxes12.DataAspectRatio = [1 1 1];
-                        Axes1_12Settings(app)
-
-                        % ylim(app.UIAxes12,[(-app.dist.*1.5), (app.dist*1.5)]);
-                        updateview(app)
-
-                        %end
-                        hold(app.UIAxes12, 'off')
-                        axis(app.UIAxes12, 'manual')
-
-                        for i = 2:size(lines, 1)
-                            for l = lines(i, :)
-                                l{1}.Visible = 0; %#ok<FXSET>
-                            end
-                        end
-
-                        for i = 2:size(lines, 1)
-                            pause(app.TimeInterval)
-                            for l = lines(i-1, :)
-                                l{1}.Visible = 0; %#ok<FXSET>
-                            end
-                            for l = lines(i, :)
-                                l{1}.Visible = 1; %#ok<FXSET>
-                            end
-                        end
-                    else
-                        msgbox('Insufficient POI')
+                    for k=1:size(app.e, 2)
+                        lines(:, k) = num2cell(plot3(app.UIAxes12, app.XAnim{app.e(k)}', app.YAnim{app.e(k)}', app.Z{app.e(k)}', ...
+                            'Color', cmap(k, :), 'Marker', app.Mtype, "MarkerEdgeColor",app.MarkerEdgeColor, ...
+                            "MarkerFaceColor", app.MarkerFaceColor, "MarkerSize", app.Msize, "LineWidth", app.LineThickness));
                     end
+                    app.UIAxes12.DataAspectRatio = [1 1 1];
+                    Axes1_12Settings(app)
+
+                    % ylim(app.UIAxes12,[(-app.dist.*1.5), (app.dist*1.5)]);
+                    updateview(app)
+
+                    %end
+                    hold(app.UIAxes12, 'off')
+                    axis(app.UIAxes12, 'manual')
+
+                    for i = 2:size(lines, 1)
+                        for l = lines(i, :)
+                            l{1}.Visible = 0; %#ok<FXSET>
+                        end
+                    end
+
+                    for i = 2:size(lines, 1)
+                        pause(app.TimeInterval)
+                        for l = lines(i-1, :)
+                            l{1}.Visible = app.Keeptrace; %#ok<FXSET>
+                        end
+                        for l = lines(i, :)
+                            l{1}.Visible = 1; %#ok<FXSET>
+                        end
+                    end
+                else
+                    msgbox('Insufficient POI')
+                end
             else
                 msgbox('No coordinates available')
             end
@@ -3914,19 +4191,19 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % define default line colors
                 cmap = get(app.UIAxes12,'defaultAxesColorOrder');
 
-                
+
                 hold (app.UIAxes12, 'on');
                 for k=1:size(app.e, 2)
                     % plot first position
                     plot3 (app.UIAxes12, app.XAnim{app.e(k)}(1,:), app.YAnim{app.e(k)}(1,:), app.Z{app.e(k)}(1,:)', 'Color','w');
-                    % plot last position                
+                    % plot last position
                     plot3 (app.UIAxes12, app.XAnim{app.e(k)}(end,:), app.YAnim{app.e(k)}(end,:), app.Z{app.e(k)}(end,:)', 'Color','w');
-                    % plot slider position                
+                    % plot slider position
                     plot3 (app.UIAxes12, app.XAnim{app.e(k)}(app.n4,:), app.YAnim{app.e(k)}(app.n4,:), app.Z{app.e(k)}(app.n4,:)',...
                         'Color', cmap(app.e(k), :), 'Marker', app.Mtype, "MarkerEdgeColor",app.MarkerEdgeColor, ...
                         "MarkerFaceColor", app.MarkerFaceColor, "MarkerSize", app.Msize, "LineWidth", app.LineThickness);
                 end
-                app.UIAxes12.DataAspectRatio = [1 1 1];                
+                app.UIAxes12.DataAspectRatio = [1 1 1];
                 rotate3d(app.UIAxes12, 'on'); % Enable 3D rotation for app.UIAxes
                 Axes1_12Settings(app)
 
@@ -4446,7 +4723,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     yyaxis(app.UIAxes14,'right')
                     plot(app.UIAxes14, app.corrTy, app.corry);
                     xlabel(app.UIAxes14, 'time');
-                    ylabel(app.UIAxes14, app.ParameterY.Value);                    
+                    ylabel(app.UIAxes14, app.ParameterY.Value);
 
                 case button1
                     % plot on the same Y-axis
@@ -4456,7 +4733,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     hold (app.UIAxes14, 'off')
 
                 case button3
-                    return;                    
+                    return;
             end
             ApplyBackgroundC(app);
         end
@@ -4757,7 +5034,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     delete(dlg);
                 else
                 end
-            else                
+            else
             end
         end
 
@@ -4874,6 +5151,9 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 updateplot(app);
                 UpdateTable(app);
                 UpdateAnimStep(app);
+
+                % Check for NaN values
+                CheckNaN(app)
             end
         end
 
@@ -4954,22 +5234,22 @@ classdef MotionAnalyser < matlab.apps.AppBase
             % backup original data
             bkpData(app)
 
-            if selectedTab == app.CoordinatesTab                
-                    if numel(app.X) >=1
-                        % Resize the data
-                        for k=1:size(app.e, 2)
-                            app.X{app.e(k)} = app.X{app.e(k)}(app.FirstPoint:app.LastPoint, :);
-                            app.Y{app.e(k)} = app.Y{app.e(k)}(app.FirstPoint:app.LastPoint, :);
-                            app.Z{app.e(k)} = app.Z{app.e(k)}(app.FirstPoint:app.LastPoint, :);
-                            app.T{app.e(k)} = app.T{app.e(k)}(app.FirstPoint:app.LastPoint, :);
-                        end
-
-                        % Update
-                        UpdateTable(app); updateplot(app); UpdateAnimStep(app);
-                    else
-                        msgbox('No coordinates available')
+            if selectedTab == app.CoordinatesTab
+                if numel(app.X) >=1
+                    % Resize the data
+                    for k=1:size(app.e, 2)
+                        app.X{app.e(k)} = app.X{app.e(k)}(app.FirstPoint:app.LastPoint, :);
+                        app.Y{app.e(k)} = app.Y{app.e(k)}(app.FirstPoint:app.LastPoint, :);
+                        app.Z{app.e(k)} = app.Z{app.e(k)}(app.FirstPoint:app.LastPoint, :);
+                        app.T{app.e(k)} = app.T{app.e(k)}(app.FirstPoint:app.LastPoint, :);
                     end
-                
+
+                    % Update
+                    UpdateTable(app); updateplot(app); UpdateAnimStep(app);
+                else
+                    msgbox('No coordinates available')
+                end
+
 
             elseif selectedTab == app.EphysTab
                 if ~isempty(app.Voltage)
@@ -5069,7 +5349,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         % Cell selection callback: UITableElement
         function UITableElementCellSelection(app, event)
             selected_rows = app.UITableElement.Selection;
-            if ~isempty(selected_rows)                
+            if ~isempty(selected_rows)
                 app.e = app.UITableElement.Selection;
                 UpdateElementTable(app)
                 UpdateTable(app)
@@ -5081,20 +5361,21 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Menu selected function: ReopenamatlabfileMenu
         function ReopenamatlabfileMenuSelected(app, event)
-            % prompt the user to select a file to load
-            [fnm, pth] = uigetfile('.mat', 'Select a file to load');
+            if isempty (app.path)
+                [app.file, app.path] = uigetfile('*.mat','Select a File');
+            else
+                [app.file, filepath] = uigetfile(fullfile(app.path, '*.mat'), 'Select a File');
+                app.path = filepath;
+            end
             if isequal(app.file,0)
                 % User clicked the "Cancel" button
                 return
             else
-
-                % load the variables from the chosen file
-                if fnm ~= 0
                     % Set the WindowStyle to "normal" to keep the app to the front
                     app.MotionAnalyserUIFigure.WindowStyle = 'normal';
 
                     % Load the data from the .mat file
-                    data = load(fullfile(pth, fnm));
+                    data = load(fullfile(app.path, app.file));                                    
 
                     % Set the app window as the current figure to prevent the app
                     % from going to the back
@@ -5318,9 +5599,9 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
                     % Update Element Table
                     UpdateElementTable(app)
-                    UpdateTable (app)
-                    clear data;
-                end
+                    UpdateTable(app)
+                    CheckNaN(app);
+                    clear data;      
             end
         end
 
@@ -5641,12 +5922,12 @@ classdef MotionAnalyser < matlab.apps.AppBase
         % Cell selection callback: UITableElement_2
         function UITableElement_2CellSelection(app, event)
             selected_rows = app.UITableElement_2.Selection;
-            if ~isempty(selected_rows)                
+            if ~isempty(selected_rows)
                 app.e = app.UITableElement_2.Selection;
-                UpdateElementTable(app)               
+                UpdateElementTable(app)
             else
                 cla(app.UIAxes12)
-            end                       
+            end
         end
 
         % Callback function
@@ -5672,33 +5953,33 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Value changed function: ElementDropDown_4
         function ElementDropDown_4ValueChanged(app, event)
-         if numel (app.X) >= 1 
-            GaitPlot(app);
+            if numel (app.X) >= 1
+                GaitPlot(app);
 
-            % reset captured values
-            app.capture_X_HS = [];
-            app.capture_Y_HS = [];
-            app.capture_Z_HS = [];
-            app.capture_t3 = [];
+                % reset captured values
+                app.capture_X_HS = [];
+                app.capture_Y_HS = [];
+                app.capture_Z_HS = [];
+                app.capture_t3 = [];
 
-            app.capture_X_HO = [];
-            app.capture_Y_HO = [];
-            app.capture_Z_HO = [];
-            app.capture_t7 = [];
+                app.capture_X_HO = [];
+                app.capture_Y_HO = [];
+                app.capture_Z_HO = [];
+                app.capture_t7 = [];
 
-            app.capture_X_TO = [];
-            app.capture_Y_TO = [];
-            app.capture_Z_TO = [];
-            app.capture_t1 = [];
+                app.capture_X_TO = [];
+                app.capture_Y_TO = [];
+                app.capture_Z_TO = [];
+                app.capture_t1 = [];
 
-            app.capture_X_MTL = [];
-            app.capture_Y_MTL = [];
-            app.capture_Z_MTL = [];
-            app.capture_t2 = [];
+                app.capture_X_MTL = [];
+                app.capture_Y_MTL = [];
+                app.capture_Z_MTL = [];
+                app.capture_t2 = [];
 
-            app.PositionSlider_2.Value = 1; % reposition slider
-            app.PositionEditField.Value = 1; % reset position number         
-         end
+                app.PositionSlider_2.Value = 1; % reposition slider
+                app.PositionEditField.Value = 1; % reset position number
+            end
         end
 
         % Menu selected function: ImportXandYKinoveaMenu
@@ -5706,7 +5987,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             % Browse to identify the x-file
             Browse(app)
 
-%%%%% Need to check %%%%%
+            %%%%% Need to check %%%%%
 
 
             if isequal(app.file,0)
@@ -5721,7 +6002,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 t = app.Table(:,1); % extract time
                 x = app.Table(:,2:end); % extract x values
                 x{:,:};
-                
+
                 % Browse to identify the x-file
                 Browse(app)
 
@@ -5733,7 +6014,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     app.TabGroup.SelectedTab = app.CoordinatesTab;
 
                     % extract Y values from the table
-                    % No need to extract time 
+                    % No need to extract time
                     y = app.Table(:,2:end); % extract x values
 
                     % Increment element number
@@ -5972,7 +6253,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Button down function: KinematicTab
         function KinematicTabButtonDown(app, event)
-            UpdateElementTable(app)            
+            UpdateElementTable(app)
             if numel (app.colname)>=1
                 % define dropdown menu items based on POI names
                 app.SingleCurveKinematic.Items = app.colname{app.e(1)}(:,1:end);
@@ -6380,10 +6661,10 @@ classdef MotionAnalyser < matlab.apps.AppBase
             if isequal(app.file,0)
                 % User clicked the "Cancel" button
                 return
-            else            
-            
-            % Inform the software that there is Stitch
-            app.Is_stitch  = "yes";            
+            else
+
+                % Inform the software that there is Stitch
+                app.Is_stitch  = "yes";
 
                 % extract values from the table
                 xy = app.Table{:,:}; % extra xy
@@ -6403,7 +6684,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 app.ZStitch = repmat(value, a(1), a(2));
 
                 % Update plot and table
-                updateplot(app)         
+                updateplot(app); CheckNaN(app);
             end
         end
 
@@ -6411,7 +6692,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
         function InvertXdirectionMenuSelected(app, event)
             % Identify which tab is used
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
-                       
+
             if selectedTab == app.CoordinatesTab
                 if numel(app.X) >=1
                     % backup original data
@@ -6438,62 +6719,62 @@ classdef MotionAnalyser < matlab.apps.AppBase
         function InvertYdirectionMenuSelected(app, event)
             % Identify which tab is used
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
-                     
-                if selectedTab == app.CoordinatesTab
-                    if numel(app.Y) >=1
-                        % backup original data
-                        bkpData(app)
 
-                        % Invert
-                        for k=1:size(app.e, 2)
-                            app.Y{app.e(k)} = app.Y{app.e(k)}.*(-1);
-                        end
+            if selectedTab == app.CoordinatesTab
+                if numel(app.Y) >=1
+                    % backup original data
+                    bkpData(app)
 
-                        % update
-                        updateplot(app);
-                        UpdateTable (app);
-                        UpdateAnimStep(app);
-                    else
-                        msgbox('No coordinates available')
+                    % Invert
+                    for k=1:size(app.e, 2)
+                        app.Y{app.e(k)} = app.Y{app.e(k)}.*(-1);
                     end
+
+                    % update
+                    updateplot(app);
+                    UpdateTable (app);
+                    UpdateAnimStep(app);
                 else
-                    msgbox('This function is only available for preprosessing of coordinates')
+                    msgbox('No coordinates available')
                 end
-            
+            else
+                msgbox('This function is only available for preprosessing of coordinates')
+            end
+
         end
 
         % Menu selected function: InvertZdirectionMenu
         function InvertZdirectionMenuSelected(app, event)
             % Identify which tab is used
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
-            
-                if selectedTab == app.CoordinatesTab
-                    if numel(app.Z) >=1
-                        % backup original data
-                        bkpData(app)
 
-                        % Invert
-                        for k=1:size(app.e, 2)
+            if selectedTab == app.CoordinatesTab
+                if numel(app.Z) >=1
+                    % backup original data
+                    bkpData(app)
+
+                    % Invert
+                    for k=1:size(app.e, 2)
                         app.Z{app.e(k)} = app.Z{app.e(k)}.*(-1);
-                        end
-
-                        % update
-                        updateplot(app);
-                        UpdateTable (app);
-                        UpdateAnimStep(app);
-
-                    else
-                        msgbox('No coordinates available')
                     end
+
+                    % update
+                    updateplot(app);
+                    UpdateTable (app);
+                    UpdateAnimStep(app);
+
                 else
-                    msgbox('This function is only available for preprosessing of coordinates')
+                    msgbox('No coordinates available')
                 end
+            else
+                msgbox('This function is only available for preprosessing of coordinates')
+            end
         end
 
         % Menu selected function: RotatetheXYplanMenu
         function RotatetheXYplanMenuSelected(app, event)
             %Identify which tab is used
-            selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab            
+            selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
 
             % check number of elements
             NumberElement = CheckNumberElementSelected(app);
@@ -6659,69 +6940,69 @@ classdef MotionAnalyser < matlab.apps.AppBase
             % Identify which tab is used
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
 
-                if selectedTab == app.CoordinatesTab
-                    if numel(app.X) >=1
-                        dlgtitle = 'Shift X-coordinates';
-                        prompt = {'Define the shift value on X'};
-                        dims = [1 40];
-                        definput = {'0'};
-                        answer = inputdlg(prompt,dlgtitle,dims,definput);
+            if selectedTab == app.CoordinatesTab
+                if numel(app.X) >=1
+                    dlgtitle = 'Shift X-coordinates';
+                    prompt = {'Define the shift value on X'};
+                    dims = [1 40];
+                    definput = {'0'};
+                    answer = inputdlg(prompt,dlgtitle,dims,definput);
 
-                        if isempty(answer)
-                        else
-                            % backup original data
-                            bkpData(app)
-
-                            % calculate shifted coordinates
-                            answer = str2double(answer);
-                            for k=1:size(app.e, 2)
-                                app.X{app.e(k)} = app.X{app.e(k)}+answer(1,1);
-                            end
-
-                            % update
-                            updateplot(app); UpdateTable(app); UpdateAnimStep(app);
-                        end
+                    if isempty(answer)
                     else
-                        msgbox('No coordinates available')
+                        % backup original data
+                        bkpData(app)
+
+                        % calculate shifted coordinates
+                        answer = str2double(answer);
+                        for k=1:size(app.e, 2)
+                            app.X{app.e(k)} = app.X{app.e(k)}+answer(1,1);
+                        end
+
+                        % update
+                        updateplot(app); UpdateTable(app); UpdateAnimStep(app);
                     end
                 else
-                    msgbox('This function is only available for preprosessing of coordinates')
-                end         
+                    msgbox('No coordinates available')
+                end
+            else
+                msgbox('This function is only available for preprosessing of coordinates')
+            end
         end
 
         % Menu selected function: ShiftYMenu
         function ShiftYMenuSelected(app, event)
             % Identify which tab is used
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
-            
-                if selectedTab == app.CoordinatesTab
-                    if numel(app.Y) >=1
-                        dlgtitle = 'Shift Y-coordinates';
-                        prompt = {'Define the shift value on Y'};
-                        dims = [1 40];
-                        definput = {'0'};
-                        answer = inputdlg(prompt,dlgtitle,dims,definput);
 
-                        if isempty(answer)
-                        else
-                            % backup original data
-                            bkpData(app)
+            if selectedTab == app.CoordinatesTab
+                if numel(app.Y) >=1
+                    dlgtitle = 'Shift Y-coordinates';
+                    prompt = {'Define the shift value on Y'};
+                    dims = [1 40];
+                    definput = {'0'};
+                    answer = inputdlg(prompt,dlgtitle,dims,definput);
 
-                            % calculate shifted coordinates
-                            answer = str2double(answer);
-                            for k=1:size(app.e, 2)
-                                app.Y{app.e(k)} = app.Y{app.e(k)}+answer(1,1);
-                            end
-
-                            % update
-                            updateplot(app); UpdateTable(app); UpdateAnimStep(app);
-                        end
+                    if isempty(answer)
                     else
-                        msgbox('No coordinates available')
+                        % backup original data
+                        bkpData(app)
+
+                        % calculate shifted coordinates
+                        answer = str2double(answer);
+                        for k=1:size(app.e, 2)
+                            app.Y{app.e(k)} = app.Y{app.e(k)}+answer(1,1);
+                        end
+
+                        % update
+                        updateplot(app); UpdateTable(app); UpdateAnimStep(app);
                     end
                 else
-                    msgbox('This function is only available for preprosessing of coordinates')
+                    msgbox('No coordinates available')
                 end
+            else
+                msgbox('This function is only available for preprosessing of coordinates')
+            end
         end
 
         % Menu selected function: ShiftZMenu
@@ -6729,34 +7010,34 @@ classdef MotionAnalyser < matlab.apps.AppBase
             % Identify which tab is used
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
 
-                if selectedTab == app.CoordinatesTab
-                    if numel(app.Z) >=1
-                        dlgtitle = 'Shift Z-coordinates';
-                        prompt = {'Define the shift values on Z'};
-                        dims = [1 40];
-                        definput = {'0'};
-                        answer = inputdlg(prompt,dlgtitle,dims,definput);
+            if selectedTab == app.CoordinatesTab
+                if numel(app.Z) >=1
+                    dlgtitle = 'Shift Z-coordinates';
+                    prompt = {'Define the shift values on Z'};
+                    dims = [1 40];
+                    definput = {'0'};
+                    answer = inputdlg(prompt,dlgtitle,dims,definput);
 
-                        if isempty(answer)
-                        else
-                            % backup original data
-                            bkpData(app)
-
-                            % calculate shifted coordinates
-                            answer = str2double(answer);
-                            for k=1:size(app.e, 2)
-                            app.Z{app.e(k)} = app.Z{app.e(k)}+answer(1,1);
-                            end
-
-                            % update
-                            updateplot(app); UpdateTable(app); UpdateAnimStep(app);
-                        end
+                    if isempty(answer)
                     else
-                        msgbox('No coordinates available')
+                        % backup original data
+                        bkpData(app)
+
+                        % calculate shifted coordinates
+                        answer = str2double(answer);
+                        for k=1:size(app.e, 2)
+                            app.Z{app.e(k)} = app.Z{app.e(k)}+answer(1,1);
+                        end
+
+                        % update
+                        updateplot(app); UpdateTable(app); UpdateAnimStep(app);
                     end
                 else
-                    msgbox('This function is only available for preprosessing of coordinates')
+                    msgbox('No coordinates available')
                 end
+            else
+                msgbox('This function is only available for preprosessing of coordinates')
+            end
         end
 
         % Menu selected function: ShiftXYZMenu
@@ -6764,36 +7045,36 @@ classdef MotionAnalyser < matlab.apps.AppBase
             % Identify which tab is used
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
 
-                if selectedTab == app.CoordinatesTab
-                    if numel(app.X) >=1
-                        dlgtitle = 'Shift XYZ-coordinates';
-                        prompt = {'Define the shift values on X','Define the shift values on Y', 'Define the shift values on Z'};
-                        dims = [1 40];
-                        definput = {'0','0','0'};
-                        answer = inputdlg(prompt,dlgtitle,dims,definput);
+            if selectedTab == app.CoordinatesTab
+                if numel(app.X) >=1
+                    dlgtitle = 'Shift XYZ-coordinates';
+                    prompt = {'Define the shift values on X','Define the shift values on Y', 'Define the shift values on Z'};
+                    dims = [1 40];
+                    definput = {'0','0','0'};
+                    answer = inputdlg(prompt,dlgtitle,dims,definput);
 
-                        if isempty(answer)
-                        else
-                            % backup original data
-                            bkpData(app)
-
-                            % calculate shifted coordinates
-                            answer = str2double(answer);
-                            for k=1:size(app.e, 2)
-                                app.X{app.e(k)} = app.X{app.e(k)}+answer(1,1);
-                                app.Y{app.e(k)} = app.Y{app.e(k)}+answer(2,1);
-                                app.Z{app.e(k)} = app.Z{app.e(k)}+answer(3,1);
-                            end
-
-                            % update
-                            updateplot(app); UpdateTable(app); UpdateAnimStep(app);
-                        end
+                    if isempty(answer)
                     else
-                        msgbox('No coordinates available')
+                        % backup original data
+                        bkpData(app)
+
+                        % calculate shifted coordinates
+                        answer = str2double(answer);
+                        for k=1:size(app.e, 2)
+                            app.X{app.e(k)} = app.X{app.e(k)}+answer(1,1);
+                            app.Y{app.e(k)} = app.Y{app.e(k)}+answer(2,1);
+                            app.Z{app.e(k)} = app.Z{app.e(k)}+answer(3,1);
+                        end
+
+                        % update
+                        updateplot(app); UpdateTable(app); UpdateAnimStep(app);
                     end
                 else
-                    msgbox('This function is only available for preprosessing of coordinates')
+                    msgbox('No coordinates available')
                 end
+            else
+                msgbox('This function is only available for preprosessing of coordinates')
+            end
         end
 
         % Button pushed function: ReplotButton
@@ -7046,7 +7327,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % Update
                 updateplot(app);
                 UpdateTable(app);
-                UpdateAnimStep(app);                
+                UpdateAnimStep(app);
 
                 % Define the sampling rate
                 dlgtitle = 'Sampling rate';
@@ -7065,14 +7346,15 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     time = transpose(time);
                     app.T{app.e} = [];
                     app.T{app.e} = time;
-                    UpdateTable(app); updateplot(app);
+                    UpdateTable(app); updateplot(app);CheckNaN(app)
                 end
             end
+            
         end
 
         % Menu selected function: EPhystracesMenu
         function EPhystracesMenuSelected(app, event)
-           % Browse and copy values
+            % Browse and copy values
             Browse(app)
 
             if isequal(app.file,0)
@@ -7081,7 +7363,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             else
                 % Set the WindowStyle to "normal" to keep the app to the front
                 app.MotionAnalyserUIFigure.WindowStyle = 'normal';
-                
+
                 data = app.Table{:,:}; % transform the numerical data table into matrix
 
                 % Set the app window as the current figure to prevent the app from going to the back
@@ -7125,6 +7407,9 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % Determine the sampling rate
                 app.Freq = 1/(mean(diff(app.tEMG))); % mean sampling rate
                 app.SamplingDataRate.Value = app.Freq; % display the sampling rate
+
+                % Check for NaN
+                CheckNaN(app);
             end
         end
 
@@ -7289,6 +7574,29 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     else
                         msgbox('No values available for plotting')
                     end
+
+                    case "Wavelets"
+                    % dialogue box to select the sensor of interest
+                    selectMOI(app)
+                    E = app.Voltage(:,app.SelectedOptionIndex); % reference point
+
+                    % Dialogue box to select wavelet type
+
+                    % Compute the CWT
+                    wt = cwt(E, "amor", app.SamplingDataRate.Value);
+
+                    % Define the time vector based on the sampling rate
+                    t = (0:length(E)-1) / app.SamplingDataRate.Value;
+
+                    % Define the scales
+                    scales = 1:size(wt, 1);
+
+                    % Plot the CWT with the defined time vector and scales
+                    imagesc(app.UIAxesEMG, t, scales, abs(wt));
+
+                    xlabel(app.UIAxesEMG,'Time');
+                    ylabel(app.UIAxesEMG,'Frequency');
+
             end
             app.PlotDropDown.Value = 'Choose';
             ApplyBackgroundC(app);
@@ -7723,7 +8031,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             for i = 2:size(lines, 1)
                 pause(app.TimeInterval)
                 for l = lines(i-1, :)
-                    l{1}.Visible = 0; %#ok<FXSET>
+                    l{1}.Visible = app.Keeptrace; %#ok<FXSET>
                 end
                 for l = lines(i, :)
                     l{1}.Visible = 1; %#ok<FXSET>
@@ -7967,68 +8275,91 @@ classdef MotionAnalyser < matlab.apps.AppBase
             end
         end
 
-        % Menu selected function: GIFMenu
-        function GIFMenuSelected(app, event)
+        % Menu selected function: GIFbuggedMenu
+        function GIFbuggedMenuSelected(app, event)
             %% switch to the animation tab
-            app.TabGroup.SelectedTab = app.AnimationTab;
+            app.TabGroup.SelectedTab = app.AnimationTab;            
 
-            GIFname = 'Animation.gif';
+                GIFname = 'Animation.gif';
 
-            lines = cell(size((app.XAnim{app.e(1)}), 1), size(app.e, 2));
+                lines = cell(size((app.XAnim{app.e(1)}), 1), size(app.e, 2));
 
-            cla(app.UIAxes12,'reset')
-            cmap = get(app.UIAxes12,'defaultAxesColorOrder');
+                cla(app.UIAxes12,'reset')
+                cmap = get(app.UIAxes12,'defaultAxesColorOrder');
 
-            % plot all segments
-            axis(app.UIAxes12, 'auto')
-            hold(app.UIAxes12, 'on')
+                % plot all segments
+                axis(app.UIAxes12, 'auto')
+                hold(app.UIAxes12, 'on')
 
-            for k=1:size(app.e, 2)
-                lines(:, k) = num2cell(plot3(app.UIAxes12, app.XAnim{app.e(k)}', app.YAnim{app.e(k)}', app.Z{app.e(k)}', ...
-                    'Color', cmap(k, :), 'Marker', app.Mtype, "MarkerEdgeColor",app.MarkerEdgeColor, ...
-                    "MarkerFaceColor", app.MarkerFaceColor, "MarkerSize", app.Msize, "LineWidth", app.LineThickness));
-            end
-            app.UIAxes12.DataAspectRatio = [1 1 1];
-            Axes1_12Settings(app)
+                for k=1:size(app.e, 2)
+                    lines(:, k) = num2cell(plot3(app.UIAxes12, app.XAnim{app.e(k)}', app.YAnim{app.e(k)}', app.Z{app.e(k)}', ...
+                        'Color', cmap(k, :), 'Marker', app.Mtype, "MarkerEdgeColor",app.MarkerEdgeColor, ...
+                        "MarkerFaceColor", app.MarkerFaceColor, "MarkerSize", app.Msize, "LineWidth", app.LineThickness));
+                end
+                app.UIAxes12.DataAspectRatio = [1 1 1];
+                Axes1_12Settings(app)
 
-            % ylim(app.UIAxes12,[(-app.dist.*1.5), (app.dist*1.5)]);
-            updateview(app)
+                % ylim(app.UIAxes12,[(-app.dist.*1.5), (app.dist*1.5)]);
+                updateview(app)
 
-            %end
-            hold(app.UIAxes12, 'off')
-            axis(app.UIAxes12, 'manual')
+                %end
+                hold(app.UIAxes12, 'off')
+                axis(app.UIAxes12, 'manual')
 
+                for i = 2:size(lines, 1)
+                    for l = lines(i, :)
+                        l{1}.Visible = 0; %#ok<FXSET>
+                    end
+                end
+
+                for i = 2:size(lines, 1)
+                    pause(app.TimeInterval)
+                    for l = lines(i-1, :)
+                        l{1}.Visible = app.Keeptrace; %#ok<FXSET>
+                    end
+                    for l = lines(i, :)
+                        l{1}.Visible = 1; %#ok<FXSET>
+                    end
+                    % capture frame
+                    frame = getframe(app.UIAxes12);
+                    im = frame2im(frame);
+                    [imind,cm] = rgb2ind(im,256);
+
+                    check_flag = 0; % initialize check flag
             for i = 2:size(lines, 1)
-                for l = lines(i, :)
-                    l{1}.Visible = 0; %#ok<FXSET>
-                end
-            end
-
-            for i = 2:size(lines, 1)
-                pause(app.TimeInterval)
-                for l = lines(i-1, :)
-                    l{1}.Visible = 0; %#ok<FXSET>
-                end
-                for l = lines(i, :)
-                    l{1}.Visible = 1; %#ok<FXSET>
-                end
-                % capture frame
-                frame = getframe(app.UIAxes12);
-                im = frame2im(frame);
-                [imind,cm] = rgb2ind(im,256);
-                if i == 1
-                    imwrite(imind,cm,GIFname,'gif', 'Loopcount',inf);
+                % ... (your code)
+                if check_flag == 0
+                    imwrite(imind, cm, GIFname, 'gif', 'Loopcount', inf, 'WriteMode', 'overwrite');
+                    check_flag = 1; % update check flag after creating the file
                 else
-                    imwrite(imind,cm,GIFname,'gif','DelayTime', app.AnimationSpeed, 'WriteMode','append');
+                    imwrite(imind, cm, GIFname, 'gif', 'DelayTime', app.AnimationSpeed, 'WriteMode', 'append');
                 end
+
+                    if i == 1
+                        imwrite(imind, cm, GIFname, 'gif', 'Loopcount', inf, 'WriteMode', 'overwrite');
+                    else
+                        imwrite(imind, cm, GIFname, 'gif', 'DelayTime', app.AnimationSpeed, 'WriteMode', 'append');
+                    end
             end
 
-            % The length of the pause determines the fluidity and the animation speed (user defined)
-            as = app.TimeintervalEditField.Value;
-            pause(as);
-            drawnow
-            frame = getframe(app.UIAxes12);
-            writeVideo(video, frame);
+
+
+
+
+                    % % if i == 1
+                    % %     imwrite(imind,cm,GIFname,'gif', 'Loopcount',inf);
+                    % % else
+                    % %     imwrite(imind,cm,GIFname,'gif','DelayTime', app.AnimationSpeed, 'WriteMode','append');
+                    % % end
+                end
+
+                % The length of the pause determines the fluidity and the animation speed (user defined)
+                as = app.TimeintervalEditField.Value;
+                pause(as);
+                drawnow
+                frame = getframe(app.UIAxes12);
+                writeVideo(video, frame);
+            
         end
 
         % Menu selected function: csvMenu
@@ -8081,71 +8412,18 @@ classdef MotionAnalyser < matlab.apps.AppBase
             if numel(app.dX) >=1
                 % Plot title et al., variables
                 app.K_title = 'Speed';
-                app.K_time = app.T{app.e}(2:end);
+                app.K_time = app.T{app.e};
                 app.K_colname = app.colname{app.e}(1:end,app.idxPOI);
 
-                % Situations defined by user
-                if app.DropDownView.Value == "X"
-                    % x-speed
-                    app.A_kine = app.VX{app.e}(1:end,app.idxPOI);
-                    app.B_kine = [app.VelocityStat{app.e,1}(1:end,app.idxPOI); app.VelocityStat{app.e,2}(1:end,app.idxPOI); app.VelocityStat{app.e,3}(1:end,app.idxPOI); app.VelocityStat{app.e,4}(1:end,app.idxPOI); app.VelocityStat{app.e,5}(1:end,app.idxPOI)];
-                    PlotKinematics(app)
+                app.TypeCurve = 'Speed'; % define the type of curve
 
-                elseif app.DropDownView.Value == "Y"
-                    % y-speed
-                    app.A_kine = app.VY{app.e}(1:end,app.idxPOI);
-                    app.B_kine = [app.VelocityStat{app.e,6}(1:end,app.idxPOI); app.VelocityStat{app.e,7}(1:end,app.idxPOI); app.VelocityStat{app.e,8}(1:end,app.idxPOI); app.VelocityStat{app.e,9}(1:end,app.idxPOI); app.VelocityStat{app.e,10}(1:end,app.idxPOI)];
-                    PlotKinematics(app)
-
-                elseif app.DropDownView.Value == 'Z'
-                    if app.Arb_Z == 0 % if the Z matrix has real values
-                        % z-speed
-                        app.A_kine  = app.VZ{app.e}(1:end,app.idxPOI);
-                        app.B_kine = [app.VelocityStat{app.e,11}(1:end,app.idxPOI); app.VelocityStat{app.e,12}(1:end,app.idxPOI); app.VelocityStat{app.e,13}(1:end,app.idxPOI); app.VelocityStat{app.e,14}(1:end,app.idxPOI); app.VelocityStat{app.e,15}(1:end,app.idxPOI)];
-                        PlotKinematics(app)
-                    else
-                        msgbox ('No real Z series in this recording')
-                    end
-
-                elseif app.DropDownView.Value == "XY"
-                    % XY-speed
-                    app.A_kine  = app.VXY{app.e}(1:end,app.idxPOI);
-                    app.B_kine = [app.VelocityStat{app.e,16}(1:end,app.idxPOI); app.VelocityStat{app.e,17}(1:end,app.idxPOI); app.VelocityStat{app.e,18}(1:end,app.idxPOI); app.VelocityStat{app.e,19}(1:end,app.idxPOI); app.VelocityStat{app.e,20}(1:end,app.idxPOI)];
-                    PlotKinematics(app)
-
-                elseif app.DropDownView.Value == "XZ"
-                    if app.Arb_Z == 0 % if the Z matrix has real values
-                        % XZ-speed
-                        app.A_kine  = app.VXZ{app.e}(1:end,app.idxPOI);
-                        app.B_kine = [app.VelocityStat{app.e,21}(1:end,app.idxPOI); app.VelocityStat{app.e,22}(1:end,app.idxPOI); app.VelocityStat{app.e,23}(1:end,app.idxPOI); app.VelocityStat{app.e,24}(1:end,app.idxPOI); app.VelocityStat{app.e,25}(1:end,app.idxPOI)];
-                        PlotKinematics(app)
-                    else
-                        msgbox ('No real Z series in this recording')
-                    end
-                elseif app.DropDownView.Value == "YZ"
-                    if app.Arb_Z == 0 % if the Z matrix has real values
-                        % YZ-speed
-                        app.A_kine  = app.VYZ{app.e}(1:end,app.idxPOI);
-                        app.B_kine = [app.VelocityStat{app.e,26}(1:end,app.idxPOI); app.VelocityStat{app.e,27}(1:end,app.idxPOI); app.VelocityStat{app.e,28}(1:end,app.idxPOI); app.VelocityStat{app.e,29}(1:end,app.idxPOI); app.VelocityStat{app.e,30}(1:end,app.idxPOI)];
-                        PlotKinematics(app)
-                    else
-
-                    end
-                elseif app.DropDownView.Value == "XYZ"
-                    if app.Arb_Z == 0 % if the Z matrix has real values
-                        % XYZ-speed
-                        app.A_kine  = app.VXYZ{app.e}(1:end,app.idxPOI);
-                        app.B_kine = [app.VelocityStat{app.e,31}(1:end,app.idxPOI); app.VelocityStat{app.e,32}(1:end,app.idxPOI); app.VelocityStat{app.e,33}(1:end,app.idxPOI); app.VelocityStat{app.e,34}(1:end,app.idxPOI); app.VelocityStat{app.e,35}(1:end,app.idxPOI)];
-                        PlotKinematics(app)
-                    else
-                        msgbox('No real Z series in this recording')
-                    end
-                end
+                PlotSpeed (app)               
             end
         end
 
         % Button pushed function: AccelerationButton_2
         function AccelerationButton_2Pushed(app, event)
+            
             % Clean all plots
             CleanKinematicPlots(app)
 
@@ -8153,60 +8431,12 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
                 % Plot title et al., variables
                 app.K_title = 'Acceleration';
-                app.K_time = app.T{app.e}(3:end);
-                app.K_colname = app.colname{app.e}(1:end,app.idxPOI);
+                app.K_time = app.T{app.e}(2:end);
+                app.K_colname = app.colname{app.e}(1:end,app.idxPOI); 
 
-                % Situations defined by user
-                if app.DropDownView.Value == "X"
-                    app.A_kine = app.AX{app.e}(1:end,app.idxPOI);
-                    app.B_kine = [app.AccelerationStat{app.e,1}(1:end,app.idxPOI); app.AccelerationStat{app.e,2}(1:end,app.idxPOI); app.AccelerationStat{app.e,3}(1:end,app.idxPOI); app.AccelerationStat{app.e,4}(1:end,app.idxPOI); app.AccelerationStat{app.e,5}(1:end,app.idxPOI)];
-                    PlotKinematics(app)
+                app.TypeCurve = 'Acceleration'; % define the type of curve
 
-                elseif app.DropDownView.Value == "Y"
-                    app.A_kine = app.AY{app.e}(1:end,app.idxPOI);
-                    app.B_kine = [app.AccelerationStat{app.e,6}(1:end,app.idxPOI); app.AccelerationStat{app.e,7}(1:end,app.idxPOI); app.AccelerationStat{app.e,8}(1:end,app.idxPOI); app.AccelerationStat{app.e,9}(1:end,app.idxPOI); app.AccelerationStat{app.e,10}(1:end,app.idxPOI)];
-                    PlotKinematics(app)
-
-                elseif app.DropDownView.Value == 'Z'
-                    if app.Arb_Z == 0 % if the Z matrix has real values
-                        app.A_kine  = app.AZ{app.e}(1:end,app.idxPOI);
-                        app.B_kine = [app.AccelerationStat{app.e,11}(1:end,app.idxPOI); app.AccelerationStat{app.e,12}(1:end,app.idxPOI); app.AccelerationStat{app.e,13}(1:end,app.idxPOI); app.AccelerationStat{app.e,14}(1:end,app.idxPOI); app.AccelerationStat{app.e,15}(1:end,app.idxPOI)];
-                        PlotKinematics(app)
-                    else
-                        msgbox ('No real Z series in this recording')
-                    end
-
-                elseif app.DropDownView.Value == "XY"
-                    app.A_kine  = app.AXY{app.e}(1:end,app.idxPOI);
-                    app.B_kine = [app.AccelerationStat{app.e,16}(1:end,app.idxPOI); app.AccelerationStat{app.e,17}(1:end,app.idxPOI); app.AccelerationStat{app.e,18}(1:end,app.idxPOI); app.AccelerationStat{app.e,19}(1:end,app.idxPOI); app.AccelerationStat{app.e,20}(1:end,app.idxPOI)];
-                    PlotKinematics(app)
-
-                elseif app.DropDownView.Value == "XZ"
-                    if app.Arb_Z == 0 % if the Z matrix has real values
-                        app.A_kine  = app.AXZ{app.e}(1:end,app.idxPOI);
-                        app.B_kine = [app.AccelerationStat{app.e,21}(1:end,app.idxPOI); app.AccelerationStat{app.e,22}(1:end,app.idxPOI); app.AccelerationStat{app.e,23}(1:end,app.idxPOI); app.AccelerationStat{app.e,24}(1:end,app.idxPOI); app.AccelerationStat{app.e,25}(1:end,app.idxPOI)];
-                        PlotKinematics(app)
-                    else
-                        msgbox ('No real Z series in this recording')
-                    end
-                elseif app.DropDownView.Value == "YZ"
-                    if app.Arb_Z == 0 % if the Z matrix has real values
-                        app.A_kine  = app.AYZ{app.e}(1:end,app.idxPOI);
-                        app.B_kine = [app.AccelerationStat{app.e,26}(1:end,app.idxPOI); app.AccelerationStat{app.e,27}(1:end,app.idxPOI); app.AccelerationStat{app.e,28}(1:end,app.idxPOI); app.AccelerationStat{app.e,29}(1:end,app.idxPOI); app.AccelerationStat{app.e,30}(1:end,app.idxPOI)];
-                        PlotKinematics(app)
-                    else
-
-                    end
-                elseif app.DropDownView.Value == "XYZ"
-                    if app.Arb_Z == 0 % if the Z matrix has real values
-                        % XYZ-speed
-                        app.A_kine  = app.AXYZ{app.e}(1:end,app.idxPOI);
-                        app.B_kine = [app.AccelerationStat{app.e,31}(1:end,app.idxPOI); app.AccelerationStat{app.e,32}(1:end,app.idxPOI); app.AccelerationStat{app.e,33}(1:end,app.idxPOI); app.AccelerationStat{app.e,34}(1:end,app.idxPOI); app.AccelerationStat{app.e,35}(1:end,app.idxPOI)];
-                        PlotKinematics(app)
-                    else
-                        msgbox('No real Z series in this recording')
-                    end
-                end
+                PlotAcceleration(app)
             end
         end
 
@@ -9085,6 +9315,9 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
                 % Plot
                 plotfSensor(app)
+
+                %Check for NaN
+                CheckNaN(app);
             end
         end
 
@@ -9233,7 +9466,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     title(app.UIAxesSensor,'FFT of sensor Signal');
 
                 case "FFT spectrogram"
-                    % launch a dialogue box
+                    % dialogue box to select the sensor of interest
                     SelectSOI(app)
 
                     E = app.fSensorValues(:,app.SelectedOptionIndex); % reference point
@@ -9285,6 +9518,44 @@ classdef MotionAnalyser < matlab.apps.AppBase
                     % Add a color bar to the right of the spectrogram
                     cb = colorbar('peer', app.UIAxesSensor);
                     ylabel(cb, 'Magnitude');
+
+                case "Wavelets"
+                    % dialogue box to select the sensor of interest
+                    SelectSOI(app)
+                    E = app.fSensorValues(:,app.SelectedOptionIndex); % reference point
+
+                    % Dialogue box to select wavelet type
+
+                    % Compute the CWT
+                    wt = cwt(E, "amor", app.SensorSamplingRate.Value);
+
+                    % Define the time vector based on the sampling rate
+                    t = (0:length(E)-1) / app.SensorSamplingRate.Value;
+
+                    % Define the scales
+                    scales = 1:size(wt, 1);
+
+                    % Plot the CWT with the defined time vector and scales
+                    imagesc(app.UIAxesSensor, t, scales, abs(wt));
+
+                    xlabel(app.UIAxesSensor,'Time');
+                    ylabel(app.UIAxesSensor,'Frequency');
+
+
+
+                    % %                     % Compute the CWT
+                    % %                     %wt = cwt(E, "amor", app.SensorSamplingRate.Value);
+                    % % wt = cwt(E, "amor", app.SensorSamplingRate.Value);
+                    % %                     % Plot the CWT
+                    % %                     imagesc(app.UIAxesSensor, abs(wt));
+                    % %                     xlabel(app.UIAxesSensor,'Time');
+                    % %                     ylabel(app.UIAxesSensor,'Frequency');
+
+
+
+
+                case "Linear detrending"
+
             end
             app.PlotSensorDropDown.Value = 'Choose';
 
@@ -9410,7 +9681,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
                 % Set the WindowStyle to "normal" to keep the app to the front
                 app.MotionAnalyserUIFigure.WindowStyle = 'normal';
-            
+
                 % Determine the label of the POIs
                 namePOI = app.header (:,2:end);
 
@@ -9453,7 +9724,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
                 % Update
                 updateplot(app);
                 UpdateTable(app);
-                UpdateAnimStep(app);                
+                UpdateAnimStep(app);
+                CheckNaN(app)
             end
         end
 
@@ -9681,15 +9953,15 @@ classdef MotionAnalyser < matlab.apps.AppBase
                         app.ChoosePlot = "Stick diagram";
                     case "Trajectory with stick diagram"
                         app.ChoosePlot = "Trajectory with stick diagram";
-                    case "Heat map"                        
-                            if app.nPOI{app.e(1)} > 1
-                                % launch a dialogue box
-                                SelectPOI(app)
-                                % collect the number that corresponds to the selection
-                                app.SinglePOI = app.SelectedOptionIndex; % user choice
-                            else
-                                app.SinglePOI = 1;
-                            end                        
+                    case "Heat map"
+                        if app.nPOI{app.e(1)} > 1
+                            % launch a dialogue box
+                            SelectPOI(app)
+                            % collect the number that corresponds to the selection
+                            app.SinglePOI = app.SelectedOptionIndex; % user choice
+                        else
+                            app.SinglePOI = 1;
+                        end
                         app.ChoosePlot = "Heat map";
                 end
                 updateplot(app);
@@ -9700,7 +9972,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Menu selected function: RemovecolumnMenu
         function RemovecolumnMenuSelected(app, event)
-            selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab            
+            selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
 
             bkpData(app)
 
@@ -9714,13 +9986,13 @@ classdef MotionAnalyser < matlab.apps.AppBase
             bottom = screensize(4)/2 - height/2;
             position = [left, bottom, width, height];
 
-            if selectedTab == app.CoordinatesTab 
+            if selectedTab == app.CoordinatesTab
                 if selectedTab == app.CoordinatesTab
-                   % check number of elements if the tab is coordinate at
-                   % stop if it is more that 1
+                    % check number of elements if the tab is coordinate at
+                    % stop if it is more that 1
                     NumberElement = CheckNumberElementSelected(app);
-                    if NumberElement == 1                    
-                    options = app.colname{app.e};
+                    if NumberElement == 1
+                        options = app.colname{app.e};
                     else
                         return
                     end
@@ -9746,7 +10018,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             uiwait(dlg);
 
             % Get the index of the selected options from the dropdown menus, if no selection stop the function
-            if ~isempty(Selection) && isvalid(Selection) 
+            if ~isempty(Selection) && isvalid(Selection)
                 ColumnNB = get(Selection, 'Value');
             else
                 return
@@ -9756,16 +10028,17 @@ classdef MotionAnalyser < matlab.apps.AppBase
             delete(dlg);
 
             if selectedTab == app.CoordinatesTab
-                % check number of elements                
-                    % remove the relevant column
-                    app.X{app.e}(:, ColumnNB) = [];
-                    app.Y{app.e}(:, ColumnNB) = [];
-                    app.Z{app.e}(:, ColumnNB) = [];
-                    app.colname{app.e}(:, ColumnNB) = [];
-                    % Update
-                    updateplot(app);
-                    UpdateTable(app);
-                    UpdateAnimStep(app);                  
+                % check number of elements
+                % remove the relevant column
+                app.X{app.e}(:, ColumnNB) = [];
+                app.Y{app.e}(:, ColumnNB) = [];
+                app.Z{app.e}(:, ColumnNB) = [];
+                app.colname{app.e}(:, ColumnNB) = [];
+                app.nPOI{app.e} = size (app.X{app.e},2); % count the number of column on X = number of POI
+                % Update
+                updateplot(app);
+                UpdateTable(app);
+                UpdateAnimStep(app);
             elseif selectedTab == app.EphysTab
                 % remove the relevant column
                 app.fEMG(:, ColumnNB) = [];
@@ -9795,38 +10068,38 @@ classdef MotionAnalyser < matlab.apps.AppBase
         function ScaleMenuSelected(app, event)
             selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
 
-                if selectedTab == app.CoordinatesTab
-                    if numel(app.X) >=1
-                        dlgtitle = 'Scale';
-                        prompt = {'Define the scaling factor'};
-                        dims = [1 40];
-                        definput = {'1'};
-                        answer = inputdlg(prompt,dlgtitle,dims,definput);
+            if selectedTab == app.CoordinatesTab
+                if numel(app.X) >=1
+                    dlgtitle = 'Scale';
+                    prompt = {'Define the scaling factor'};
+                    dims = [1 40];
+                    definput = {'1'};
+                    answer = inputdlg(prompt,dlgtitle,dims,definput);
 
-                        if isempty(answer)
-                        else
-                            % backup original data
-                            bkpData(app)
-
-                            % apply scaling factor
-                            factor = str2double(answer);
-                            for k=1:size(app.e, 2)
-                                app.X{app.e(k)} = app.X{app.e(k)}.*factor;
-                                app.Y{app.e(k)} = app.Y{app.e(k)}.*factor;
-                                app.Z{app.e(k)} = app.Z{app.e(k)}.*factor;
-                            end
-
-                            % update
-                            updateplot(app);
-                            UpdateTable(app);
-                            UpdateAnimStep(app);
-                        end
+                    if isempty(answer)
                     else
-                        msgbox('No coordinates available')
+                        % backup original data
+                        bkpData(app)
+
+                        % apply scaling factor
+                        factor = str2double(answer);
+                        for k=1:size(app.e, 2)
+                            app.X{app.e(k)} = app.X{app.e(k)}.*factor;
+                            app.Y{app.e(k)} = app.Y{app.e(k)}.*factor;
+                            app.Z{app.e(k)} = app.Z{app.e(k)}.*factor;
+                        end
+
+                        % update
+                        updateplot(app);
+                        UpdateTable(app);
+                        UpdateAnimStep(app);
                     end
                 else
-                    msgbox('This function is only available for preprosessing of coordinates')
-                end            
+                    msgbox('No coordinates available')
+                end
+            else
+                msgbox('This function is only available for preprosessing of coordinates')
+            end
         end
 
         % Value changed function: PositionSliderEMG
@@ -10069,7 +10342,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Button down function: CoordinatesTab
         function CoordinatesTabButtonDown(app, event)
-            if ~isempty(app.UITableElement.Selection)                
+            if ~isempty(app.UITableElement.Selection)
                 app.e = app.UITableElement.Selection;
             else
                 app.e = 1;
@@ -10078,9 +10351,9 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Button down function: AnimationTab
         function AnimationTabButtonDown(app, event)
-            if ~isempty(app.UITableElement_2.Selection)                
+            if ~isempty(app.UITableElement_2.Selection)
                 app.e = app.UITableElement_2.Selection;
-            elseif ~isempty (app.UITableElement.Selection) 
+            elseif ~isempty (app.UITableElement.Selection)
                 app.e = app.UITableElement.Selection;
             else
                 app.e = 1;
@@ -10100,17 +10373,17 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
         % Button pushed function: SetfromdisplayButton
         function SetfromdisplayButtonPushed(app, event)
-           % This function captures the azimuth and elevation of the UIAxes12
-           [app.SetazimuthtoEditField.Value, app.SetelevationtoEditField.Value] = view(app.UIAxes12); % capture
-           updateview(app) 
+            % This function captures the azimuth and elevation of the UIAxes12
+            [app.SetazimuthtoEditField.Value, app.SetelevationtoEditField.Value] = view(app.UIAxes12); % capture
+            updateview(app)
         end
 
         % Menu selected function: MovecolumnMenu
         function MovecolumnMenuSelected(app, event)
             % This function allows the user to choose a column of data and
             % move it to another position with respect to the other columns
-            
-            selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab            
+
+            selectedTab = app.TabGroup.SelectedTab; % Get the currently selected tab
 
             bkpData(app)
 
@@ -10124,14 +10397,14 @@ classdef MotionAnalyser < matlab.apps.AppBase
             bottom = screensize(4)/2 - height/2;
             position = [left, bottom, width, height];
 
-            if selectedTab == app.CoordinatesTab 
+            if selectedTab == app.CoordinatesTab
                 if selectedTab == app.CoordinatesTab
-                   % check number of elements if the tab is coordinate at
-                   % stop if it is more that 1
+                    % check number of elements if the tab is coordinate at
+                    % stop if it is more that 1
                     NumberElement = CheckNumberElementSelected(app);
-                    if NumberElement == 1                    
-                    labels = app.colname{app.e};
-                    colnum = (1:size(app.colname{app.e}, 2))';
+                    if NumberElement == 1
+                        labels = app.colname{app.e};
+                        colnum = (1:size(app.colname{app.e}, 2))';
                     else
                         return
                     end
@@ -10197,14 +10470,14 @@ classdef MotionAnalyser < matlab.apps.AppBase
             elseif selectedTab == app.EphysTab
                 column_to_move = app.fEMG(:, ColumnNB); % copy the column to move in new variable
                 app.fEMG(:, ColumnNB) = []; % delete column to move from original dataset
-                app.fEMG = [app.fEMG(:, 1:MoveVal-1), column_to_move, app.fEMG(:, MoveVal:end)]; 
+                app.fEMG = [app.fEMG(:, 1:MoveVal-1), column_to_move, app.fEMG(:, MoveVal:end)];
 
-                column_to_move = app.Voltage(:, ColumnNB); 
-                app.Voltage(:, ColumnNB) = []; 
+                column_to_move = app.Voltage(:, ColumnNB);
+                app.Voltage(:, ColumnNB) = [];
                 app.Voltage = [app.Voltage(:, 1:MoveVal-1), column_to_move, app.Voltage(:, MoveVal:end)];
 
-                column_to_move = app.colnameEMG(:, ColumnNB); 
-                app.colnameEMG(:, ColumnNB) = []; 
+                column_to_move = app.colnameEMG(:, ColumnNB);
+                app.colnameEMG(:, ColumnNB) = [];
                 app.colnameEMG = [app.colnameEMG(:, 1:MoveVal-1), column_to_move, app.colnameEMG(:, MoveVal:end)];
 
                 % Update
@@ -10214,14 +10487,14 @@ classdef MotionAnalyser < matlab.apps.AppBase
             elseif selectedTab == app.SensorTab
                 column_to_move = app.fSensorValues(:, ColumnNB); % copy the column to move in new variable
                 app.fSensorValues(:, ColumnNB) = []; % delete column to move from original dataset
-                app.fSensorValues = [app.fSensorValues(:, 1:MoveVal-1), column_to_move, app.fSensorValues(:, MoveVal:end)]; 
+                app.fSensorValues = [app.fSensorValues(:, 1:MoveVal-1), column_to_move, app.fSensorValues(:, MoveVal:end)];
 
-                column_to_move = app.SensorValues(:, ColumnNB); 
-                app.SensorValues(:, ColumnNB) = []; 
+                column_to_move = app.SensorValues(:, ColumnNB);
+                app.SensorValues(:, ColumnNB) = [];
                 app.SensorValues = [app.SensorValues(:, 1:MoveVal-1), column_to_move, app.SensorValues(:, MoveVal:end)];
 
-                column_to_move = app.colnameSensor(:, ColumnNB); 
-                app.colnameSensor(:, ColumnNB) = []; 
+                column_to_move = app.colnameSensor(:, ColumnNB);
+                app.colnameSensor(:, ColumnNB) = [];
                 app.colnameSensor = [app.colnameSensor(:, 1:MoveVal-1), column_to_move, app.colnameSensor(:, MoveVal:end)];
 
                 % Update
@@ -10260,21 +10533,21 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
             rgbValues = inputdlg(prompt, title, dims, defaultRGB);
 
-            % Check if the user clicked Cancel or closed the dialog            
-                % Extract RGB values
-                red = str2double(rgbValues{1})/255;
-                green = str2double(rgbValues{2})/255;
-                blue = str2double(rgbValues{3})/255;
+            % Check if the user clicked Cancel or closed the dialog
+            % Extract RGB values
+            red = str2double(rgbValues{1})/255;
+            green = str2double(rgbValues{2})/255;
+            blue = str2double(rgbValues{3})/255;
 
-                % check that the values are between 0 and 1
-                if all(~isnan([red, green, blue])) && all(red >= 0) && all(red <= 1) && ...
-                        all(green >= 0) && all(green <= 1) && all(blue >= 0) && all(blue <= 1)
+            % check that the values are between 0 and 1
+            if all(~isnan([red, green, blue])) && all(red >= 0) && all(red <= 1) && ...
+                    all(green >= 0) && all(green <= 1) && all(blue >= 0) && all(blue <= 1)
 
-                    % Create an array for the RGB values
-                    app.backgroundC = [red, green, blue];
-                else
-                    msgbox('Invalid RGB values. Please enter values between 0 and 255.');
-                end
+                % Create an array for the RGB values
+                app.backgroundC = [red, green, blue];
+            else
+                msgbox('Invalid RGB values. Please enter values between 0 and 255.');
+            end
             ApplyBackgroundC(app)
         end
 
@@ -10313,7 +10586,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
             bkpData(app)
             app.X{app.e} = app.Y_old{app.e};
             app.Y{app.e} = app.X_old{app.e};
-            updateplot(app); UpdateTable(app); UpdateAnimStep(app);            
+            updateplot(app); UpdateTable(app); UpdateAnimStep(app);
         end
 
         % Menu selected function: SwapXandZMenu
@@ -10345,20 +10618,20 @@ classdef MotionAnalyser < matlab.apps.AppBase
             NewZ = app.Z{app.e}(:, p:end);
             NewT = app.T{app.e};
             NewColname = app.colname{app.e}(:, p:end);
-                        
+
             % shorten the current element to the choosen POI
             app.X{app.e} = app.X{app.e}(:, 1:p);
             app.Y{app.e} = app.Y{app.e}(:, 1:p);
-            app.Z{app.e} = app.Z{app.e}(:, 1:p); 
-            app.colname{app.e} = app.colname{app.e}(:, 1:p);            
-            
+            app.Z{app.e} = app.Z{app.e}(:, 1:p);
+            app.colname{app.e} = app.colname{app.e}(:, 1:p);
+
             % Change the name of the "old element"
             app.ElementName(app.e) = {'Split element1'};
 
-            % assigne a new nPOI to the "old element"
+            % update the nPOI
             app.nPOI{app.e} = size (app.X{app.e}, 2);
-            
-            % Increment the app.e
+
+            % update the app.e
             h = app.te(end) + 1; % te is total number of element
             app.te = [app.e, h];
             app.e = app.te(end);
@@ -10370,11 +10643,11 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.T{app.e} = NewT;
             app.colname{app.e} = NewColname;
 
-            % Increment the element name to the new split          
+            % Increment the element name to the new split
             app.ElementName = [app.ElementName; {'Split element2'}];
 
             % Determin the nPOI to the "old element"
-            app.nPOI{app.e} = size (app.X{app.e}, 2); 
+            app.nPOI{app.e} = size (app.X{app.e}, 2);
 
             % Update Element Table
             UpdateElementTable(app);
@@ -10385,6 +10658,180 @@ classdef MotionAnalyser < matlab.apps.AppBase
         function GrayMenuSelected(app, event)
             app.backgroundC = [0.9 0.9 0.9];
             ApplyBackgroundC(app)
+        end
+
+        % Menu selected function: OnMenu
+        function OnMenuSelected(app, event)
+            app.Keeptrace = 1;
+        end
+
+        % Menu selected function: OffMenu
+        function OffMenuSelected(app, event)
+            app.Keeptrace = 0;
+        end
+
+        % Menu selected function: DeleteMenu
+        function DeleteMenuSelected(app, event)
+            SelectElement(app)
+            p = app.SelectedOptionIndex; % user choice
+            bkpData(app)
+
+            app.X{app.e} = [];
+            app.Y{app.e} = [];
+            app.Z{app.e} = [];
+            app.T{app.e} = [];
+            app.ElementName (p) = [];
+
+            % update the app.e
+            en = app.e-1;
+            if en >= 1
+                app.e = en;
+            else
+                app.e = 1;
+            end
+            % update app.te
+            app.te = app.te-1;
+            
+            % Update Tables et al.
+            UpdateElementTable(app); updateplot(app); UpdateTable(app); UpdateAnimStep(app);
+        end
+
+        % Callback function
+        function AddrowsMenuSelected(app, event)
+            NumberElement = CheckNumberElementSelected(app);
+            if NumberElement == 1
+                if ~isempty(app.n29)
+                    if numel(app.X) >=1
+                        % dialogue box
+                        dlgtitle = 'Insert row(s)';
+                        prompt = {'How many rows do you want to insert after the selected one?'};
+                        dims = [1 40];
+                        definput = {'1'};
+                        answer = inputdlg(prompt,dlgtitle,dims,definput);
+
+                        if isempty(answer)
+                        else
+                            factor = str2double(answer);
+                        end
+
+                        bkpData(app)
+                        % Get the number of columns in the matrix
+                        numCols = size(app.X{app.e}, 2);
+
+                        % Create a new row of NaN values
+                        newRow = nan(factor, numCols);
+
+                        app.X{app.e} = [app.X{app.e}(1:app.n29,:); newRow; app.X{app.e}(app.n29+factor:end,:)];
+                        app.Y{app.e} = [app.Y{app.e}(1:app.n29,:); newRow; app.Y{app.e}(app.n29+factor:end,:)];
+                        app.Z{app.e} = [app.Z{app.e}(1:app.n29,:); newRow; app.Z{app.e}(app.n29+factor:end,:)];                      
+
+                        %  Determine the sampling rate
+                        SR = 1/(mean(diff(app.T{app.e}))); % mean sampling rate
+
+                        % Insert a single NaN in the time matrix after app.n29                        
+                        app.T{app.e} = [app.T{app.e}(1:app.n29); newRow(:,1); app.T{app.e}(app.n29+factor:end)];  
+
+                        % Recalculated the time values based on the sampling rate
+                        difft = 1./SR;
+                        m = length (app.T{app.e});
+                        time = 0+(0:m-1)*difft;
+                        app.T{app.e} = transpose(time);
+
+                        % Update data
+                        updateplot(app); UpdateTable(app); UpdateAnimStep(app)
+                    else 
+                        msgbox ('No data points available for calculation')
+                    end
+                else
+                     msgbox (['Choose the position preceding the one where you wish to perform interpolation...' ...
+                            ' Remember that all the elements that you want to display together must have the same...' ...
+                            ' numbe of points'])
+                end
+            end                         
+        end
+
+        % Menu selected function: InsertdatapointsMenu
+        function InsertdatapointsMenuSelected(app, event)
+            NumberElement = CheckNumberElementSelected(app);
+            if NumberElement == 1
+                if ~isempty(app.n29)
+                    if numel(app.X) >=1
+                        % dialogue box
+                        dlgtitle = 'Insert row(s)';
+                        prompt = {'How many rows do you want to insert after the selected one?'};
+                        dims = [1 40];
+                        definput = {'1'};
+                        answer = inputdlg(prompt,dlgtitle,dims,definput);
+
+                        if isempty(answer)
+                        else
+                            factor = str2double(answer);
+                        end
+
+                        
+                        bkpData(app)
+                        % Get the number of columns in the matrix
+                        %numCols = size(app.X{app.e}, 2);
+
+                        % % Create a new row of NaN values
+                        % newRow = nan(factor, numCols);
+                        % app.X{app.e} = [app.X{app.e}(1:app.n29,:); newRow; app.X{app.e}(app.n29+factor:end,:)];
+                        % app.Y{app.e} = [app.Y{app.e}(1:app.n29,:); newRow; app.Y{app.e}(app.n29+factor:end,:)];
+                        % app.Z{app.e} = [app.Z{app.e}(1:app.n29,:); newRow; app.Z{app.e}(app.n29+factor:end,:)];                    
+                        % 
+                        % % Insert a single NaN in the time matrix after app.n29                        
+                        % app.T{app.e} = [app.T{app.e}(1:app.n29); newRow(:,1); app.T{app.e}(app.n29+factor:end)];  
+
+                        % Get the current amplitude and time data 10 values beyond missing points
+                        if factor >= 10
+                            lim1 = app.n29 -(round(factor)/3);
+                            lim2 = app.n29+factor+(factor/3);
+                        else
+                            lim1 = app.n29 - 4;
+                            lim2 = app.n29+factor+4;
+                        end
+
+                        current_amplitudeX = app.X{app.e}(lim1:lim2,:);
+                        current_amplitudeY = app.Y{app.e}(lim1:lim2,:);
+                        current_amplitudeZ = app.Z{app.e}(lim1:lim2,:);
+                        current_time = app.T{app.e}(lim1:lim2,:);
+
+                        % Calculate the new length based on the factor
+                        new_length = length(current_time);
+
+                        % Generate new time points using linspace
+                        new_time = linspace(min(current_time), max(current_time), new_length)';
+
+                        % Initialize a matrix to hold the new amplitude data
+                        new_amplitudeX = zeros(new_length, size(current_amplitudeX, 2));
+                        new_amplitudeY = zeros(new_length, size(current_amplitudeY, 2));
+                        new_amplitudeZ = zeros(new_length, size(current_amplitudeZ, 2));
+
+                        % Loop over each column in the amplitude data
+                        for i = 1:size(current_amplitudeX, 2)
+                            % Use spline to generate new amplitude points corresponding to the new time points
+                            new_amplitudeX(:, i) = spline(current_time, current_amplitudeX(:, i), new_time);
+                            new_amplitudeY(:, i) = spline(current_time, current_amplitudeY(:, i), new_time);
+                            new_amplitudeZ(:, i) = spline(current_time, current_amplitudeZ(:, i), new_time);
+                        end
+
+                        % Insert the new points at the position specified by app.n29
+                        app.T{app.e} = [app.T{app.e}(1:app.n29); new_time; app.T{app.e}(app.n29+1:end)];
+                        app.X{app.e} = [app.X{app.e}(1:app.n29, :); new_amplitudeX; app.X{app.e}(app.n29+1:end, :)];
+                        app.Y{app.e} = [app.Y{app.e}(1:app.n29, :); new_amplitudeY; app.Y{app.e}(app.n29+1:end, :)];
+                        app.Z{app.e} = [app.Z{app.e}(1:app.n29, :); new_amplitudeZ; app.Z{app.e}(app.n29+1:end, :)];
+
+                        % Update data
+                        updateplot(app); UpdateTable(app); UpdateAnimStep(app)
+                    else
+                        msgbox ('No data points available for calculation')
+                    end
+                else
+                    msgbox (['Choose the position preceding the one where you wish to perform interpolation...' ...
+                        ' Remember that all the elements that you want to display together must have the same...' ...
+                        ' numbe of points'])
+                end
+            end
         end
     end
 
@@ -10568,10 +11015,10 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.AVIMenu.MenuSelectedFcn = createCallbackFcn(app, @AVIMenuSelected, true);
             app.AVIMenu.Text = 'AVI';
 
-            % Create GIFMenu
-            app.GIFMenu = uimenu(app.AnimationMenu_2);
-            app.GIFMenu.MenuSelectedFcn = createCallbackFcn(app, @GIFMenuSelected, true);
-            app.GIFMenu.Text = 'GIF';
+            % Create GIFbuggedMenu
+            app.GIFbuggedMenu = uimenu(app.AnimationMenu_2);
+            app.GIFbuggedMenu.MenuSelectedFcn = createCallbackFcn(app, @GIFbuggedMenuSelected, true);
+            app.GIFbuggedMenu.Text = 'GIF (bugged)';
 
             % Create EditMenu
             app.EditMenu = uimenu(app.MotionAnalyserUIFigure);
@@ -10612,14 +11059,24 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.ElementsMenu = uimenu(app.EditMenu);
             app.ElementsMenu.Text = 'Elements';
 
-            % Create MergeMenu
-            app.MergeMenu = uimenu(app.ElementsMenu);
-            app.MergeMenu.Text = 'Merge';
+            % Create MergenotcodedMenu
+            app.MergenotcodedMenu = uimenu(app.ElementsMenu);
+            app.MergenotcodedMenu.Text = 'Merge (not coded)';
 
             % Create SplitMenu
             app.SplitMenu = uimenu(app.ElementsMenu);
             app.SplitMenu.MenuSelectedFcn = createCallbackFcn(app, @SplitMenuSelected, true);
             app.SplitMenu.Text = 'Split';
+
+            % Create DeleteMenu
+            app.DeleteMenu = uimenu(app.ElementsMenu);
+            app.DeleteMenu.MenuSelectedFcn = createCallbackFcn(app, @DeleteMenuSelected, true);
+            app.DeleteMenu.Text = 'Delete';
+
+            % Create InsertdatapointsMenu
+            app.InsertdatapointsMenu = uimenu(app.EditMenu);
+            app.InsertdatapointsMenu.MenuSelectedFcn = createCallbackFcn(app, @InsertdatapointsMenuSelected, true);
+            app.InsertdatapointsMenu.Text = 'Insert data points';
 
             % Create InvertMenu
             app.InvertMenu = uimenu(app.EditMenu);
@@ -11043,6 +11500,24 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.SegmentationdensityMenu.MenuSelectedFcn = createCallbackFcn(app, @SegmentationdensityMenuSelected, true);
             app.SegmentationdensityMenu.Text = 'Segmentation density';
 
+            % Create AnimationMenu_3
+            app.AnimationMenu_3 = uimenu(app.AppearanceMenu);
+            app.AnimationMenu_3.Text = 'Animation';
+
+            % Create KeeptraceMenu
+            app.KeeptraceMenu = uimenu(app.AnimationMenu_3);
+            app.KeeptraceMenu.Text = 'Keep trace';
+
+            % Create OnMenu
+            app.OnMenu = uimenu(app.KeeptraceMenu);
+            app.OnMenu.MenuSelectedFcn = createCallbackFcn(app, @OnMenuSelected, true);
+            app.OnMenu.Text = 'On';
+
+            % Create OffMenu
+            app.OffMenu = uimenu(app.KeeptraceMenu);
+            app.OffMenu.MenuSelectedFcn = createCallbackFcn(app, @OffMenuSelected, true);
+            app.OffMenu.Text = 'Off';
+
             % Create SignalprocessingMenu
             app.SignalprocessingMenu = uimenu(app.MotionAnalyserUIFigure);
             app.SignalprocessingMenu.Tooltip = {'Analysis signals in different ways'};
@@ -11178,8 +11653,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.PositionSlider.MajorTicks = [];
             app.PositionSlider.ValueChangedFcn = createCallbackFcn(app, @PositionSliderValueChanged, true);
             app.PositionSlider.MinorTicks = [];
-            app.PositionSlider.Tooltip = {'Select a position'};
             app.PositionSlider.FontSize = 9;
+            app.PositionSlider.Tooltip = {'Select a position'};
             app.PositionSlider.Position = [541 632 513 3];
 
             % Create PositionLabel
@@ -11293,8 +11768,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.PositionSlider_3.MajorTickLabels = {''};
             app.PositionSlider_3.ValueChangedFcn = createCallbackFcn(app, @PositionSlider_3ValueChanged, true);
             app.PositionSlider_3.MinorTicks = [];
-            app.PositionSlider_3.Tooltip = {'Select a single position'};
             app.PositionSlider_3.FontSize = 10;
+            app.PositionSlider_3.Tooltip = {'Select a single position'};
             app.PositionSlider_3.Position = [479 636 451 3];
 
             % Create PositionField2
@@ -11698,7 +12173,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
             % Create PlotDropDown
             app.PlotDropDown = uidropdown(app.EphysTab);
-            app.PlotDropDown.Items = {'Choose', 'Raw E-phys trace', 'Filtered E-phys trace', 'E-phys envelope', 'Raw/envelope', 'FFT power spectrum', 'FFT spectrogram'};
+            app.PlotDropDown.Items = {'Choose', 'Raw E-phys trace', 'Filtered E-phys trace', 'E-phys envelope', 'Raw/envelope', 'FFT power spectrum', 'FFT spectrogram', 'Wavelets'};
             app.PlotDropDown.ValueChangedFcn = createCallbackFcn(app, @PlotDropDownValueChanged, true);
             app.PlotDropDown.Tooltip = {''};
             app.PlotDropDown.Position = [49 622 187 22];
@@ -11721,8 +12196,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.PositionSliderEMG.MajorTicks = [];
             app.PositionSliderEMG.ValueChangedFcn = createCallbackFcn(app, @PositionSliderEMGValueChanged, true);
             app.PositionSliderEMG.MinorTicks = [];
-            app.PositionSliderEMG.Tooltip = {'Select a position'};
             app.PositionSliderEMG.FontSize = 9;
+            app.PositionSliderEMG.Tooltip = {'Select a position'};
             app.PositionSliderEMG.Position = [420 632 634 3];
 
             % Create PositionLabelEMG
@@ -11845,7 +12320,7 @@ classdef MotionAnalyser < matlab.apps.AppBase
 
             % Create PlotSensorDropDown
             app.PlotSensorDropDown = uidropdown(app.SensorTab);
-            app.PlotSensorDropDown.Items = {'Choose', 'Raw sensor signal', 'Filtered  sensor signal', 'Sensor signal envelope', 'Raw/envelope', 'FFT power spectrum', 'FFT spectrogram'};
+            app.PlotSensorDropDown.Items = {'Choose', 'Raw sensor signal', 'Filtered  sensor signal', 'Sensor signal envelope', 'Raw/envelope', 'Linear detrending', 'FFT power spectrum', 'FFT spectrogram', 'Wavelets'};
             app.PlotSensorDropDown.ValueChangedFcn = createCallbackFcn(app, @PlotSensorDropDownValueChanged, true);
             app.PlotSensorDropDown.Tooltip = {'Plot a power spectrum or a spectrogram'};
             app.PlotSensorDropDown.Position = [49 622 187 22];
@@ -11861,8 +12336,8 @@ classdef MotionAnalyser < matlab.apps.AppBase
             app.PositionSliderSensor.MajorTicks = [];
             app.PositionSliderSensor.ValueChangedFcn = createCallbackFcn(app, @PositionSliderSensorValueChanged, true);
             app.PositionSliderSensor.MinorTicks = [];
-            app.PositionSliderSensor.Tooltip = {'Select a position'};
             app.PositionSliderSensor.FontSize = 9;
+            app.PositionSliderSensor.Tooltip = {'Select a position'};
             app.PositionSliderSensor.Position = [420 632 634 3];
 
             % Create PositionLabelSensor
